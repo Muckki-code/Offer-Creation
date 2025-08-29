@@ -110,7 +110,6 @@ function getNextAvailableIndex(sheet) {
   return maxIndex + 1;
 }
 
-// In SheetCoreAutomations.gs
 /**
 * OPTIMIZED: Recalculates all data rows in the active sheet.
 * This version determines the next available index once from the in-memory array
@@ -131,7 +130,7 @@ function recalculateAllRows(options = {}) {
     return;
   }
   const numRows = lastRow - startRow + 1;
-  const dataBlockStartCol = CONFIG.documentDeviceData.columnIndices.sku; // FIXED: Added space
+  const dataBlockStartCol = CONFIG.documentDeviceData.columnIndices.sku;
   const numCols = CONFIG.maxDataColumn - dataBlockStartCol + 1;
   ExecutionTimer.start('recalculateAllRows_readSheet');
   const allValuesBefore = sheet.getRange(startRow, dataBlockStartCol, numRows, numCols).getValues();
@@ -141,6 +140,7 @@ function recalculateAllRows(options = {}) {
 
   const staticValues = _getStaticSheetValues(sheet);
   const combinedIndexes = { ...CONFIG.approvalWorkflow.columnIndices, ...CONFIG.documentDeviceData.columnIndices };
+  const statusStrings = CONFIG.approvalWorkflow.statusStrings;
   let nextIndex = null; // Initialize to null
 
   ExecutionTimer.start('recalculateAllRows_mainLoop');
@@ -154,13 +154,12 @@ function recalculateAllRows(options = {}) {
     const modelName = inMemoryRowValues[combinedIndexes.model - dataBlockStartCol];
     if (modelName && !inMemoryRowValues[combinedIndexes.index - dataBlockStartCol]) {
       Log.TestCoverage_gs({ file: 'SheetCoreAutomations.gs', coverage: 'recalculateAllRows_assignIndex' });
-      // If this is the first new row we've encountered, calculate the starting index ONCE.
       if (nextIndex === null) {
         const allCurrentIndices = allValuesAfter.map(row => parseFloat(row[combinedIndexes.index - dataBlockStartCol])).filter(val => !isNaN(val));
         const maxCurrentIndex = allCurrentIndices.length > 0 ? Math.max(...allCurrentIndices) : 0;
         nextIndex = maxCurrentIndex + 1;
       }
-      inMemoryRowValues[combinedIndexes.index - dataBlockStartCol] = nextIndex++; // Assign the index and increment for the next one
+      inMemoryRowValues[combinedIndexes.index - dataBlockStartCol] = nextIndex++;
       Log[sourceFile](`[${sourceFile} - recalculateAllRows] Row ${currentRowNum}: Assigned new index ${inMemoryRowValues[combinedIndexes.index - dataBlockStartCol]}.`);
     }
 
@@ -172,11 +171,37 @@ function recalculateAllRows(options = {}) {
 
     updateCalculationsForRow(sheet, currentRowNum, inMemoryRowValues, staticValues.isTelekomDeal, combinedIndexes, CONFIG.approvalWorkflow, dataBlockStartCol);
 
+    // --- THIS IS THE FIX ---
     const statusUpdateOptions = { forceRevisionOfFinalizedItems: true };
-    updateStatusForRow(
-      sheet, currentRowNum, null, null, inMemoryRowValues, combinedIndexes, originalRowValuesForThisRow,
-      staticValues.docLanguage, staticValues.isTelekomDeal, statusUpdateOptions, dataBlockStartCol
+    const initialStatus = originalRowValuesForThisRow[combinedIndexes.status - dataBlockStartCol] || "";
+    
+    // Corrected function call with the right signature
+    const newStatus = updateStatusForRow(
+      inMemoryRowValues,
+      originalRowValuesForThisRow,
+      staticValues.isTelekomDeal,
+      statusUpdateOptions,
+      dataBlockStartCol,
+      combinedIndexes
     );
+
+    // Logic to handle the returned status, copied from handleSheetAutomations
+    if (newStatus !== initialStatus) {
+        if (newStatus === null) { 
+            inMemoryRowValues[combinedIndexes.status - dataBlockStartCol] = ""; 
+        } else {
+            inMemoryRowValues[combinedIndexes.status - dataBlockStartCol] = newStatus;
+            if ([statusStrings.pending, statusStrings.draft, statusStrings.revisedByAE].includes(newStatus)) {
+                inMemoryRowValues[combinedIndexes.approverAction - dataBlockStartCol] = "Choose Action";
+            }
+            const approvedStatuses = [statusStrings.approvedOriginal, statusStrings.approvedNew, statusStrings.rejected];
+            if (approvedStatuses.includes(initialStatus) && !approvedStatuses.includes(newStatus)) {
+                inMemoryRowValues[combinedIndexes.financeApprovedPrice - dataBlockStartCol] = "";
+                inMemoryRowValues[combinedIndexes.approvedBy - dataBlockStartCol] = "";
+                inMemoryRowValues[combinedIndexes.approvalDate - dataBlockStartCol] = "";
+            }
+        }
+    }
   }
   ExecutionTimer.end('recalculateAllRows_mainLoop');
 
@@ -186,6 +211,7 @@ function recalculateAllRows(options = {}) {
   Log[sourceFile](`[${sourceFile} - recalculateAllRows] Wrote all recalculated data back to the sheet.`);
   ExecutionTimer.end('recalculateAllRows_total');
 }
+
 
 
 /**
@@ -439,8 +465,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
 
                 default:
                   Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_bundleInvalid_defaultToast' });
-                  // Fallback for any other validation error. Revert and show a simple toast.
-                  range.setValue(e.oldValue);
+                  // MODIFICATION: The line that reverted the edit has been removed.
                   SpreadsheetApp.getActive().toast(validationResult.errorMessage, "Validation Error", 10);
                   break;
               }
@@ -459,6 +484,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
   Log.TestCoverage_gs({ file: 'SheetCoreAutomations.gs', coverage: 'handleSheetAutomations_end' });
   ExecutionTimer.end('handleSheetAutomations_total');
 }
+
 
 // In SheetCoreAutomations.gs
 

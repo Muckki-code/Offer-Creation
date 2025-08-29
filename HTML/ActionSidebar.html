@@ -181,10 +181,17 @@
             mainPanel.classList.remove('hidden');
         }
 
-        // --- Initialize View ---
+               // --- Initialize View & Start Polling ---
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('main-functions').classList.add('active');
+            
+            // Start polling for UI updates only if it hasn't been started already
+            if (!isPollingActive) {
+                isPollingActive = setInterval(pollForUiUpdates, 3000); // Check every 3 seconds
+                console.log('UI Polling Started.');
+            }
         });
+
 
         // Re-implementing the functions that were in the dialogs before
         function openTab(evt, tabName) {let i, tabcontent, tablinks; tabcontent = document.getElementsByClassName("tab-content"); for (i = 0; i < tabcontent.length; i++) {tabcontent[i].classList.remove("active");} tablinks = document.getElementsByClassName("tab-button"); for (i = 0; i < tablinks.length; i++) {tablinks[i].classList.remove("active");} document.getElementById(tabName).classList.add("active"); evt.currentTarget.classList.add("active");}

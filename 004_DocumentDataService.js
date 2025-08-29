@@ -10,7 +10,7 @@ function showOfferDialog() {
   Log[sourceFile](`[${sourceFile} - showOfferDialog] Start.`);
   
   ExecutionTimer.start('showOfferDialog_readSheet');
-  const htmlTemplate = HtmlService.createTemplateFromFile('OfferForm');
+  const htmlTemplate = HtmlService.createTemplateFromFile('HTML/OfferForm');
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const today = new Date();
   const defaultCreatedDateStr = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2) + '-' + ('0' + today.getDate()).slice(-2);

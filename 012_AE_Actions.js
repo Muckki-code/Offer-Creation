@@ -84,7 +84,7 @@ function submitItemsForApproval() {
     ExecutionTimer.end('submitItemsForApproval_prepareDialog');
 
     ExecutionTimer.start('submitItemsForApproval_renderDialog');
-    const htmlTemplate = HtmlService.createTemplateFromFile('PersonalMessageDialog');
+    const htmlTemplate = HtmlService.createTemplateFromFile('HTML/PersonalMessageDialog');
     htmlTemplate.initialData = initialDataForDialog;
     const htmlOutput = htmlTemplate.evaluate().setWidth(550).setHeight(400);
 
@@ -233,7 +233,7 @@ function sendApprovalRequestEmail(summaryData) {
   Log[sourceFile](`[${sourceFile} - sendApprovalRequestEmail] Info: Email Subject: '${subject}'.`);
 
   ExecutionTimer.start('sendApprovalRequestEmail_renderTemplate');
-  const htmlTemplate = HtmlService.createTemplateFromFile('ApprovalEmail');
+  const htmlTemplate = HtmlService.createTemplateFromFile('HTML/ApprovalEmail');
   htmlTemplate.summary = summaryData;
   htmlTemplate.spreadsheetName = spreadsheet.getName();
   htmlTemplate.sheetName = spreadsheet.getActiveSheet().getName();

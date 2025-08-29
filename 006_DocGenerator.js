@@ -168,7 +168,7 @@ function populateDeviceTable(doc, devicesData, grandTotal, language) {
 function showSuccessDialog(docUrl, message) {
   const sourceFile = "DocGenerator_gs";
   Log.TestCoverage_gs({ file: sourceFile, coverage: 'showSuccessDialog_start' });
-  const htmlTemplate = HtmlService.createTemplateFromFile('SuccessDialog');
+  const htmlTemplate = HtmlService.createTemplateFromFile('HTML/SuccessDialog');
   htmlTemplate.docUrl = docUrl;
   htmlTemplate.message = message || "Document processed successfully!";
   const htmlOutput = htmlTemplate.evaluate().setWidth(600).setHeight(250);

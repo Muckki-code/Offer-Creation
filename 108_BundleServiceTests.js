@@ -3,17 +3,46 @@
  * These are integration tests that operate on a live temporary sheet.
  */
 
+// --- Test-Suite Specific Mock Setup ---
+var _originalShowBundleMismatchDialog;
+var _showBundleMismatchDialogCalled = false;
+
+function _setUpBundleServiceTests() {
+    _originalShowBundleMismatchDialog = showBundleMismatchDialog;
+    _showBundleMismatchDialogCalled = false; // Reset before each run
+
+    // Replace the real function with a mock that just sets a flag
+    showBundleMismatchDialog = function(rowNum, bundleNumber, currentValues, expectedValues) {
+        _showBundleMismatchDialogCalled = true;
+        // Log for debugging test runs
+        Log.TestDebug_gs(`[MOCK] showBundleMismatchDialog was called with: rowNum=${rowNum}, bundleNumber=${bundleNumber}`);
+    };
+    
+    setUp(); // Call the general setUp from 200_Tests.js
+}
+
+function _tearDownBundleServiceTests() {
+    // Restore the original function
+    if (_originalShowBundleMismatchDialog) {
+        showBundleMismatchDialog = _originalShowBundleMismatchDialog;
+    }
+    tearDown(); // Call the general tearDown
+}
+
+
 /**
  * Runs all INTEGRATION tests for BundleService.gs.
  */
 function runBundleService_IntegrationTests() {
     Log.TestResults_gs("--- Starting BundleService Integration Test Suite ---");
 
-    setUp();
+    _setUpBundleServiceTests(); // Use our specific setup
+
     test_validateBundle_Standalone_Integration();
-    test_handleSheetAutomations_BundleValidation_Integration();
+    test_handleSheetAutomations_BundleValidation_Integration(); // REFACTORED TEST
     test_groupApprovedItems_Integration(); 
-    tearDown(); 
+
+    _tearDownBundleServiceTests(); // Use our specific teardown
 
     Log.TestResults_gs("--- BundleService Integration Test Suite Finished ---");
 }
@@ -49,51 +78,52 @@ function test_validateBundle_Standalone_Integration() {
     });
 }
 
+/**
+ * --- REFACTORED TEST ---
+ * This test now verifies the NEW non-blocking UI behavior.
+ */
 function test_handleSheetAutomations_BundleValidation_Integration() {
-    const testName = "Integration Test: handleSheetAutomations Bundle Validation";
+    const testName = "Integration Test: handleSheetAutomations Bundle Validation (Non-Blocking UI)";
 
     withTestConfig(function() {
       withTestSheet(MOCK_DATA_INTEGRATION.csvForBundleValidationTests, function(sheet) {
           const c = { ...CONFIG.documentDeviceData.columnIndices, ...CONFIG.approvalWorkflow.columnIndices };
 
-          // --- SCENARIO 1: An invalid edit (mismatched terms) should be reverted ---
-          const invalidCell = sheet.getRange(13, c.bundleNumber); 
-          const oldValueInvalid = invalidCell.getValue();
-          const newValueInvalid = 606; 
+          // --- SCENARIO 1: An invalid edit (mismatched terms) should be KEPT and trigger a dialog ---
+          const invalidCell = sheet.getRange(13, c.aeTerm); // Editing Term on "Mismatch Term A"
+          const oldValueInvalid = invalidCell.getValue(); // This is 24
+          const newValueInvalid = 99; // A new term that causes the mismatch
           
+          _showBundleMismatchDialogCalled = false; // Reset our mock flag before the action
+
           invalidCell.setValue(newValueInvalid);
+          SpreadsheetApp.flush(); // Ensure the value is written before the event handler runs
           const mockEventInvalid = { range: invalidCell, value: newValueInvalid, oldValue: oldValueInvalid };
           handleSheetAutomations(mockEventInvalid);
           
-          _assertNotNull(TestMocks.MOCK_TOAST_MESSAGE, `${testName} - An alert should be shown for an invalid bundle.`);
-          _assertTrue(TestMocks.MOCK_TOAST_MESSAGE.includes("must have the same Quantity and Term"), `${testName} - The alert message should be correct.`);
-          _assertEqual(invalidCell.getValue(), oldValueInvalid, `${testName} - The invalid change should be reverted in the sheet.`);
+          // --- VERIFY NEW BEHAVIOR ---
+          _assertEqual(invalidCell.getValue(), newValueInvalid, `${testName} - The invalid user edit should be KEPT in the sheet.`);
+          _assertTrue(_showBundleMismatchDialogCalled, `${testName} - showBundleMismatchDialog SHOULD be called for an invalid bundle edit.`);
+          
 
-          // --- SCENARIO 2: A valid edit should be kept ---
-          sheet.getRange(3, c.aeQuantity).setValue(10);
+          // --- SCENARIO 2: A valid edit should be kept and NOT trigger a dialog ---
+          // Make the bundle valid first by aligning quantity and term
+          sheet.getRange(3, c.aeQuantity).setValue(10); 
           sheet.getRange(3, c.aeTerm).setValue(24);
           SpreadsheetApp.flush();
 
-          const validCell1 = sheet.getRange(2, c.bundleNumber);
-          const oldValue1 = validCell1.getValue();
-          const newValueValid = 888;
-          TestMocks.MOCK_TOAST_MESSAGE = null; 
-
-          validCell1.setValue(newValueValid);
-          const mockEvent1 = { range: validCell1, value: newValueValid, oldValue: oldValue1 };
-          handleSheetAutomations(mockEvent1);
+          const validCell = sheet.getRange(2, c.bundleNumber);
+          const oldValidValue = validCell.getValue();
+          const newValidValue = 888;
           
-          _assertEqual(TestMocks.MOCK_TOAST_MESSAGE, null, `${testName} - No alert should be shown for the first item of a valid bundle.`);
-          _assertEqual(validCell1.getValue(), newValueValid, `${testName} - The first valid change should be kept.`);
+          _showBundleMismatchDialogCalled = false; // Reset mock flag
 
-          const validCell2 = sheet.getRange(3, c.bundleNumber);
-          const oldValue2 = validCell2.getValue();
-          validCell2.setValue(newValueValid);
-          const mockEvent2 = { range: validCell2, value: newValueValid, oldValue: oldValue2 };
-          handleSheetAutomations(mockEvent2);
-
-          _assertEqual(TestMocks.MOCK_TOAST_MESSAGE, null, `${testName} - No alert should be shown for the second item of a valid bundle.`);
-          _assertEqual(validCell2.getValue(), newValueValid, `${testName} - The second valid change should be kept.`);
+          validCell.setValue(newValidValue);
+          const mockEventValid = { range: validCell, value: newValidValue, oldValue: oldValidValue };
+          handleSheetAutomations(mockEventValid);
+          
+          _assertEqual(validCell.getValue(), newValidValue, `${testName} - A valid change should be kept.`);
+          _assertEqual(_showBundleMismatchDialogCalled, false, `${testName} - showBundleMismatchDialog should NOT be called for a valid edit.`);
       });
     });
 }

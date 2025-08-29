@@ -4,7 +4,7 @@
  * Shows the main action sidebar in the UI.
  */
 function showActionSidebar() {
-  const html = HtmlService.createTemplateFromFile('ActionSidebar').evaluate().setTitle('Action Sidebar');
+  const html = HtmlService.createTemplateFromFile('HTML/ActionSidebar').evaluate().setTitle('Action Sidebar');
   SpreadsheetApp.getUi().showSidebar(html);
 }
 
@@ -113,7 +113,7 @@ function runFullSheetRepair() {
 function showApplicationOverviewDialog() {
   Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'showApplicationOverviewDialog_start' });
   Log.Main_gs("[Main.gs - showApplicationOverviewDialog] Start: showApplicationOverviewDialog function started.");
-  var htmlOutput = HtmlService.createTemplateFromFile('ApplicationOverview').evaluate()
+  var htmlOutput = HtmlService.createTemplateFromFile('HTML/ApplicationOverview').evaluate()
       .setWidth(900)
       .setHeight(650)
       .setTitle('Application Architecture Overview');
@@ -142,7 +142,7 @@ function getOverviewContent() {
 function getUserGuideContent() {
   Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'getUserGuideContent_start' });
   Log.Main_gs("[Main.gs - getUserGuideContent] Start: getUserGuideContent function started.");
-  const htmlTemplate = HtmlService.createTemplateFromFile('UserGuide');
+  const htmlTemplate = HtmlService.createTemplateFromFile('HTML/UserGuide');
   const content = htmlTemplate.evaluate().getContent();
   Log.Main_gs("[Main.gs - getUserGuideContent] End: User Guide content retrieved.");
   return content;
@@ -154,7 +154,7 @@ function getUserGuideContent() {
 function getOfferDocumentDetailsContent() {
   Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'getOfferDocumentDetailsContent_start' });
   Log.Main_gs("[Main.gs - getOfferDocumentDetailsContent] Start: getOfferDocumentDetailsContent function started.");
-  const htmlTemplate = HtmlService.createTemplateFromFile('OfferDocumentDetails');
+  const htmlTemplate = HtmlService.createTemplateFromFile('HTML/OfferDocumentDetails');
   const content = htmlTemplate.evaluate().getContent();
   Log.Main_gs("[Main.gs - getOfferDocumentDetailsContent] End: Offer Document Details content retrieved.");
   return content;
@@ -166,7 +166,7 @@ function getOfferDocumentDetailsContent() {
 function getTechnicalDetailsContent() {
   Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'getTechnicalDetailsContent_start' });
   Log.Main_gs("[Main.gs - getTechnicalDetailsContent] Start: getTechnicalDetailsContent function started.");
-  const htmlTemplate = HtmlService.createTemplateFromFile('TechnicalDetails');
+  const htmlTemplate = HtmlService.createTemplateFromFile('HTML/TechnicalDetails');
   const content = htmlTemplate.evaluate().getContent();
   Log.Main_gs("[Main.gs - getTechnicalDetailsContent] End: Technical Details content retrieved.");
   return content;
@@ -178,7 +178,7 @@ function getTechnicalDetailsContent() {
 function getCodeAnalysisContent() {
   Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'getCodeAnalysisContent_start' });
   Log.Main_gs("[Main.gs - getCodeAnalysisContent] Start: getCodeAnalysisContent function started.");
-  const htmlTemplate = HtmlService.createTemplateFromFile('CodeAnalysis');
+  const htmlTemplate = HtmlService.createTemplateFromFile('HTML/CodeAnalysis');
   const content = htmlTemplate.evaluate().getContent();
   Log.Main_gs("[Main.gs - getCodeAnalysisContent] End: Code Analysis content retrieved.");
   return content;

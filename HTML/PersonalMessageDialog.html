@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+      body { padding: 20px; font-family: 'Inter', sans-serif; }
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        background-color: #fff;
+      }
+      h4 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #333;
+      }
+      textarea, input[type="text"], input[type="email"], select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-sizing: border-box;
+        font-size: 1rem;
+        margin-top: 5px; /* Added spacing */
+      }
+      textarea {
+        resize: vertical;
+        min-height: 150px;
+      }
+      .form-group {
+        margin-bottom: 15px; /* Spacing between form groups */
+      }
+      .button-group {
+        text-align: right;
+        margin-top: 20px;
+      }
+      .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .btn-primary {
+        background-color: #197b78;
+        color: #fff;
+        border: none;
+      }
+      .btn-primary:hover {
+        background-color: #156a68;
+      }
+      .btn-secondary {
+        background-color: #6c757d;
+        color: #fff;
+        border: none;
+        margin-right: 10px;
+      }
+      .btn-secondary:hover {
+        background-color: #5a6268;
+      }
+      /* Styles for hidden fields */
+      .hidden-field {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h4 id="dialogTitle">Add a Personal Message</h4>
+      <p id="dialogPrompt">You can add an optional personal message to the approver:</p>
+      
+      <!-- Personal Message Textarea -->
+      <div class="form-group">
+        <textarea id="personalMessage" rows="5" placeholder="Enter your message here..."></textarea>
+      </div>
+
+      <!-- Conditional Fields -->
+      <div class="form-group hidden-field" id="form-group-aeName">
+        <label for="aeName" id="label-aeName">Your Full Name (Everphone Contact):</label>
+        <input type="text" id="aeName" placeholder="Enter your full name">
+      </div>
+
+      <div class="form-group hidden-field" id="form-group-customerCompany">
+        <label for="customerCompany" id="label-customerCompany">Customer Company Name:</label>
+        <input type="text" id="customerCompany" placeholder="Enter customer company name">
+      </div>
+
+      <div class="form-group hidden-field" id="form-group-telekomDeal">
+        <label for="telekomDeal" id="label-telekomDeal">Is this a Telekom Deal?</label>
+        <select id="telekomDeal">
+            <option value="">-- Select --</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+        </select>
+      </div>
+
+      <div class="button-group">
+        <button type="button" class="btn btn-secondary" id="cancelButton">Cancel</button>
+        <button type="button" class="btn btn-primary" id="sendButton">Send</button>
+      </div>
+    </div>
+
+    <script>
+      // Translations for the dialog
+      const translations = {
+        "english": {
+          "dialogTitle": "Add a Personal Message",
+          "dialogPrompt": "You can add an optional personal message to the approver:",
+          "placeholder": "Enter your message here...",
+          "cancelButton": "Cancel",
+          "sendButton": "Send",
+          "labelAeName": "Your Full Name (Everphone Contact):",
+          "placeholderAeName": "Enter your full name",
+          "labelCustomerCompany": "Customer Company Name:",
+          "placeholderCustomerCompany": "Enter customer company name",
+          "labelTelekomDeal": "Is this a Telekom Deal?",
+          "selectTelekomDeal": "-- Select --",
+          "telekomDealYes": "Yes",
+          "telekomDealNo": "No"
+        },
+        "german": {
+          "dialogTitle": "Persönliche Nachricht hinzufügen",
+          "dialogPrompt": "Sie können eine optionale persönliche Nachricht an den Genehmiger hinzufügen:",
+          "placeholder": "Geben Sie Ihre Nachricht hier ein...",
+          "cancelButton": "Abbrechen",
+          "sendButton": "Senden",
+          "labelAeName": "Ihr vollständiger Name (Everphone Kontakt):",
+          "placeholderAeName": "Geben Sie Ihren vollständigen Namen ein",
+          "labelCustomerCompany": "Kundenunternehmen Name:",
+          "placeholderCustomerCompany": "Geben Sie den Namen des Kundenunternehmens ein",
+          "labelTelekomDeal": "Ist dies ein Telekom-Deal?",
+          "selectTelekomDeal": "-- Auswählen --",
+          "telekomDealYes": "Ja",
+          "telekomDealNo": "Nein"
+        }
+      };
+
+      // Function to update the dialog language
+      function updateDialogLanguage(lang) {
+        const currentTrans = translations[lang] || translations["german"];
+        document.getElementById('dialogTitle').textContent = currentTrans.dialogTitle;
+        document.getElementById('dialogPrompt').textContent = currentTrans.dialogPrompt;
+        document.getElementById('personalMessage').placeholder = currentTrans.placeholder;
+        document.getElementById('cancelButton').textContent = currentTrans.cancelButton;
+        document.getElementById('sendButton').textContent = currentTrans.sendButton;
+
+        document.getElementById('label-aeName').textContent = currentTrans.labelAeName;
+        document.getElementById('aeName').placeholder = currentTrans.placeholderAeName;
+        document.getElementById('label-customerCompany').textContent = currentTrans.labelCustomerCompany;
+        document.getElementById('customerCompany').placeholder = currentTrans.placeholderCustomerCompany;
+        document.getElementById('label-telekomDeal').textContent = currentTrans.labelTelekomDeal;
+        
+        const telekomDealSelect = document.getElementById('telekomDeal');
+        telekomDealSelect.querySelector('option[value=""]').textContent = currentTrans.selectTelekomDeal;
+        telekomDealSelect.querySelector('option[value="Yes"]').textContent = currentTrans.telekomDealYes;
+        telekomDealSelect.querySelector('option[value="No"]').textContent = currentTrans.telekomDealNo;
+      }
+
+      // Function to dynamically adjust dialog height
+      function recalculateDialogHeight() {
+        const container = document.querySelector('.container');
+        if (container) {
+          const height = container.scrollHeight + 40; // Add some padding for safety
+          google.script.host.setHeight(height);
+        }
+      }
+
+      // Initial data passed from server-side
+      const initialData = JSON.parse('<?!= JSON.stringify(initialData) ?>'); // Passed as JSON string
+
+      // Set initial language based on what's passed from the server
+      const initialLang = initialData.language; 
+      updateDialogLanguage(initialLang);
+
+      // Populate and conditionally show fields
+      if (initialData.aeName && initialData.aeName.trim() !== '') {
+        document.getElementById('form-group-aeName').style.display = 'none';
+      } else {
+        document.getElementById('form-group-aeName').style.display = 'block';
+      }
+      document.getElementById('aeName').value = initialData.aeName || '';
+
+      if (initialData.customerCompany && initialData.customerCompany.trim() !== '') {
+        document.getElementById('form-group-customerCompany').style.display = 'none';
+      } else {
+        document.getElementById('form-group-customerCompany').style.display = 'block';
+      }
+      document.getElementById('customerCompany').value = initialData.customerCompany || '';
+
+      if (initialData.telekomDealInitial && initialData.telekomDealInitial.trim() !== '') {
+        document.getElementById('form-group-telekomDeal').style.display = 'none';
+      } else {
+        document.getElementById('form-group-telekomDeal').style.display = 'block';
+      }
+      // Set value for telekomDeal only if it exists and is either 'Yes' or 'No'
+      if (['Yes', 'No'].includes(initialData.telekomDealInitial)) {
+          document.getElementById('telekomDeal').value = initialData.telekomDealInitial;
+      } else {
+          document.getElementById('telekomDeal').value = ''; // Ensure default selection if value is invalid
+      }
+
+      // Recalculate height after fields are hidden/shown
+      recalculateDialogHeight();
+
+
+      // Event listeners for buttons
+      document.getElementById('sendButton').addEventListener('click', function() {
+        const message = document.getElementById('personalMessage').value;
+        const aeName = document.getElementById('aeName').value;
+        const customerCompany = document.getElementById('customerCompany').value;
+        const telekomDeal = document.getElementById('telekomDeal').value;
+
+        google.script.run
+            .withSuccessHandler(function() {
+                google.script.host.close(); 
+            })
+            .withFailureHandler(function(error) {
+                alert("Error sending message: " + error.message); 
+                google.script.host.close();
+            })
+            ._handlePersonalMessageSubmission(message, aeName, customerCompany, telekomDeal); 
+      });
+
+      document.getElementById('cancelButton').addEventListener('click', function() {
+        google.script.run
+            .withSuccessHandler(function() {
+                google.script.host.close();
+            })
+            .withFailureHandler(function(error) {
+                alert("Error cancelling message: " + error.message);
+                google.script.host.close();
+            })
+            ._handlePersonalMessageSubmission(null, null, null, null); // Pass nulls for all fields on cancel
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+      body { padding: 20px; text-align: center; }
+      p { margin-top: 15px; margin-bottom: 20px; word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h4><?!= message ?></h4>
+      <p>Document URL: <a href="<?!= docUrl ?>" target="_blank" rel="noopener noreferrer"><?!= docUrl ?></a></p>
+      <button class="btn btn-primary" onclick="google.script.host.close()">Close</button>
+    </div>
+  </body>
+</html>

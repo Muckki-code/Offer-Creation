@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+    <p>Hi <?= approverFirstName ?>,</p>
+    <p>
+      A new price approval request has been submitted by <b><?= summary.submitterName ?></b>.
+    </p>
+
+    <!-- Personal Message from AE (Optional) -->
+    <? if (summary.personalMessage && summary.personalMessage.trim() !== '') { ?>
+      <div style="background-color: #f0f8ff; border-left: 5px solid #197b78; padding: 10px 15px; margin-top: 20px; font-style: italic;">
+        <p style="margin: 0; font-weight: bold;">Message from AE:</p>
+        <p style="margin: 5px 0 0 0; white-space: pre-wrap;"><?= summary.personalMessage ?></p>
+      </div>
+    <? } ?>
+
+    <!-- Summary Box -->
+    <div style="background-color: #afdece; padding: 15px 20px; border-radius: 8px; margin-top: 20px; width: 45%; min-width: 300px;">
+      <p style="font-size: 1.1em; margin-top: 0; margin-bottom: 5px;"><b>Request Summary:</b></p>
+      <ul style="padding-left: 20px; list-style-type: disc; margin: 0;">
+        <li><b>Customer Company:</b> <?= summary.customerCompany ?></li>
+        <li><b>Number of Items:</b> <?= summary.itemCount ?></li>
+        <li><b>Offer Type:</b> <?= summary.offerType ?></li>
+        <? if (summary.telekomDealStatus && summary.telekomDealStatus.trim() !== '') { ?>
+          <li><b>Telekom Deal:</b> <?= summary.telekomDealStatus ?></li>
+        <? } ?>
+      </ul>
+    </div>
+
+    <p style="margin-top: 25px;">
+      <a href="<?= spreadsheetUrl ?>" style="background-color: #197b78; color: #ffffff; padding: 12px 18px; text-decoration: none; border-radius: 5px; font-weight: bold;">Please click here to open the sheet</a>
+    </p>
+
+    <p style="margin-top: 25px;">Thank you.</p>
+  </body>
+</html>

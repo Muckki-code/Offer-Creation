@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Styles adapted from your provided template */
+        body { font-family: 'Inter', sans-serif; background-color: #f0f7fa; color: #263238; padding: 0; margin: 0; height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+        .container { background-color: #ffffff; padding: 0.75rem; display: flex; flex-direction: column; flex-grow: 1; overflow-y: auto; }
+        h1 { font-size: 1.25rem; font-weight: 800; color: #004d40; text-align: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #004d40; }
+        
+        /* Tab Styles */
+        .tab-nav { display: flex; border-bottom: 1px solid #ccc; margin-bottom: 1rem; }
+        .tab-button { padding: 0.5rem 1rem; cursor: pointer; border: none; background-color: transparent; border-bottom: 3px solid transparent; font-weight: 600; color: #455a64; font-size: 0.9rem; }
+        .tab-button:hover { background-color: #e0f2f7; }
+        .tab-button.active { color: #004d40; border-bottom-color: #00796b; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Action Button Styles */
+        .action-button { display: block; width: 100%; text-align: left; background-color: #e0f2f7; color: #004d40; padding: 0.6rem 0.75rem; border-radius: 0.375rem; margin-bottom: 0.5rem; font-weight: 600; transition: background-color 0.2s ease; border: 1px solid #b2dfdb; cursor: pointer; }
+        .action-button:hover { background-color: #c2e9f3; }
+
+        /* Collapsible Section Styles */
+        .collapsible-header { background-color: #e8eaf6; color: #303f9f; padding: 0.6rem 0.75rem; border-radius: 0.375rem; margin-top: 0.75rem; margin-bottom: 0.25rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; transition: background-color 0.2s ease; border: 1px solid #c5cae9; }
+        .collapsible-header:hover { background-color: #d1d5f3; }
+        .collapsible-arrow { transition: transform 0.2s ease; }
+        .collapsible-header.active .collapsible-arrow { transform: rotate(90deg); }
+        .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; padding-left: 1rem; }
+        .collapsible-content .action-button { background-color: #f1f8e9; border-color: #dcedc8; color: #33691e; }
+        .collapsible-content .action-button:hover { background-color: #e6f3d8; }
+
+        /* --- NEW: Correction Panel Styles --- */
+        #correction-panel {
+            border-top: 2px solid #ff8a65;
+            padding-top: 1rem;
+            margin-top: 1rem;
+        }
+
+        /* Status Box Styles */
+        #status-box { position: fixed; bottom: 0; left: 0; right: 0; background-color: #ffe0b2; color: #e65100; padding: 10px; text-align: center; font-weight: 500; display: none; z-index: 100; transition: opacity 0.3s ease; opacity: 0; }
+        #status-box.show { display: block; opacity: 1;}
+        #status-box.success { background-color: #c8e6c9; color: #1b5e20; }
+        #status-box.error { background-color: #ffcdd2; color: #c62828; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Action Sidebar</h1>
+
+        <div id="main-panel">
+            <div class="tab-nav">
+                <button class="tab-button active" onclick="openTab(event, 'main-functions')">Main</button>
+                <button class="tab-button" onclick="openTab(event, 'admin-functions')">Admin</button>
+                <button class="tab-button" onclick="openTab(event, 'project-info')">Project Info</button>
+            </div>
+
+            <!-- Main Functions Tab -->
+            <div id="main-functions" class="tab-content active">
+                <div class="collapsible-header" onclick="toggleCollapsible(event)">
+                    <span>AE Actions</span>
+                    <span class="collapsible-arrow">></span>
+                </div>
+                <div class="collapsible-content">
+                    <button class="action-button" onclick="callServerFunction('getDataFromSKU', 'Fetching data...')">Get Data from BigQuery</button>
+                    <button class="action-button" onclick="callServerFunction('showOfferDialog', 'Opening dialog...')">Create Offer Document</button>
+                    <button class="action-button" onclick="callServerFunction('submitItemsForApproval', 'Submitting for approval...')">Submit Items for Approval</button>
+                </div>
+                <div class="collapsible-header" onclick="toggleCollapsible(event)">
+                    <span>Approver Actions</span>
+                    <span class="collapsible-arrow">></span>
+                </div>
+                <div class="collapsible-content">
+                    <button class="action-button" onclick="callServerFunction('processAllApproverActions', 'Processing actions...')">Process All Approvals</button>
+                </div>
+            </div>
+
+            <!-- Admin Tab -->
+            <div id="admin-functions" class="tab-content">
+                <button class="action-button" onclick="callServerFunction('runFullSheetRepair', 'Repairing sheet...')">Repair Sheet (UX & Data)</button>
+            </div>
+
+            <!-- Project Info Tab -->
+            <div id="project-info" class="tab-content">
+                <button class="action-button" onclick="callServerFunction('showApplicationOverviewDialog', 'Opening overview...')">Application Overview</button>
+            </div>
+        </div>
+        
+        <!-- --- NEW: Dynamic Correction Panel --- -->
+        <div id="correction-panel" class="hidden"></div>
+
+    </div>
+    <div id="status-box"></div>
+
+    <script>
+        // --- Tab Management ---
+        function openTab(evt, tabName) { /* ... same as before ... */ }
+
+        // --- Collapsible Section Management ---
+        function toggleCollapsible(event) { /* ... same as before ... */ }
+        
+        // --- Status Message Handling ---
+        function showStatus(message, isError = false, duration = 4000) { /* ... same as before ... */ }
+
+        // --- Server-side Function Caller ---
+        function callServerFunction(functionName, statusMessage) {
+            closeCorrectionPanel(); // Hide correction panel when a main action is taken
+            showStatus(statusMessage || `Executing ${functionName}...`);
+            google.script.run
+                .withSuccessHandler(response => { showStatus(`${functionName.replace(/([A-Z])/g, ' $1').trim()} completed.`, false); })
+                .withFailureHandler(error => { showStatus(`Error: ${error.message}`, true, 8000); })
+                [functionName]();
+        }
+
+        // --- NEW: Correction Panel Functions ---
+                // --- NEW: Polling Mechanism for UI Updates ---
+        let isPollingActive = false; // Prevents multiple intervals
+
+        /**
+         * Polls the server for any staged UI updates.
+         */
+        function pollForUiUpdates() {
+            // Check if a correction panel is already open; if so, don't poll.
+            const panel = document.getElementById('correction-panel');
+            if (panel && panel.style.display === 'block') {
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(update) {
+                    if (update && update.functionName && update.data) {
+                        console.log('UI Update Received from Server:', update);
+                        // We have an update, show the correction panel
+                        showCorrectionPanel(update.functionName, update.data);
+                    }
+                })
+                .withFailureHandler(function(err) {
+                    // Stop polling on error to prevent a flood of failed requests
+                    if(isPollingActive) {
+                        clearInterval(isPollingActive);
+                        isPollingActive = false;
+                    }
+                    console.error('Polling failed:', err);
+                    // Optionally show a subtle error to the user
+                    // showStatus('Connection to server lost. Please reload.', true, 10000);
+                })
+                .getSidebarUpdate();
+        }
+
+
+        /**
+         * Called from the server to display a correction UI in the sidebar.
+         * @param {string} functionName The server function to call to get the HTML content.
+         * @param {Object} data The data payload needed by the server function.
+         */
+        function showCorrectionPanel(functionName, data) {
+            const panel = document.getElementById('correction-panel');
+            const mainPanel = document.getElementById('main-panel');
+            
+            showStatus('Action required...', false, 2000);
+            
+            google.script.run
+                .withSuccessHandler(htmlContent => {
+                    panel.innerHTML = htmlContent;
+                    mainPanel.classList.add('hidden');
+                    panel.classList.remove('hidden');
+                    // If the loaded content has an init function, call it
+                    if (typeof window.initializeCorrectionDialog === 'function') {
+                        window.initializeCorrectionDialog(data);
+                    }
+                })
+                .withFailureHandler(err => showStatus('Error loading UI: ' + err.message, true))
+                [functionName](data);
+        }
+
+        function closeCorrectionPanel() {
+            const panel = document.getElementById('correction-panel');
+            const mainPanel = document.getElementById('main-panel');
+            panel.innerHTML = '';
+            panel.classList.add('hidden');
+            mainPanel.classList.remove('hidden');
+        }
+
+        // --- Initialize View ---
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('main-functions').classList.add('active');
+        });
+
+        // Re-implementing the functions that were in the dialogs before
+        function openTab(evt, tabName) {let i, tabcontent, tablinks; tabcontent = document.getElementsByClassName("tab-content"); for (i = 0; i < tabcontent.length; i++) {tabcontent[i].classList.remove("active");} tablinks = document.getElementsByClassName("tab-button"); for (i = 0; i < tablinks.length; i++) {tablinks[i].classList.remove("active");} document.getElementById(tabName).classList.add("active"); evt.currentTarget.classList.add("active");}
+        function toggleCollapsible(event) {const header = event.currentTarget; const content = header.nextElementSibling; header.classList.toggle('active'); if (content.style.maxHeight && content.style.maxHeight !== '0px') {content.style.maxHeight = '0px';} else {content.style.maxHeight = content.scrollHeight + "px"; content.addEventListener('transitionend', () => {if (content.style.maxHeight !== '0px') content.style.maxHeight = 'none';}, { once: true });}}
+    </script>
+</body>
+</html>

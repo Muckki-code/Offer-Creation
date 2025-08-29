@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <title>Code Analysis</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #333; padding: 20px; background-color: #f8f9fa; }
+        .container { max-width: 900px; margin: 20px auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3, h4 { color: #197b78; margin-top: 25px; margin-bottom: 15px; }
+        h1 { font-size: 2.2em; text-align: center; color: #0f4c4c; }
+        h2 { font-size: 1.8em; border-bottom: 2px solid #e2f0ef; padding-bottom: 5px; }
+        h3 { font-size: 1.4em; color: #3b8a8b; }
+        .file-section { margin-bottom: 30px; padding: 15px; border-left: 5px solid #a3e6e4; background-color: #eaf7f7; border-radius: 4px; }
+        .file-section h3 { margin-top: 0; }
+        .file-section ul { list-style-type: disc; margin-left: 20px; }
+        .file-section li strong { color: #0056b3; }
+        .code-snippet { background-color: #e9ecef; padding: 10px; border-radius: 5px; overflow-x: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; }
+        .new-feature-highlight { background-color: #d4edda; border-left: 4px solid #28a745; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .status-passed { color: #2E7D32; font-weight: 700; }
+        .toc-section { background-color: #f0f8ff; border: 1px solid #cce5ff; padding: 20px; margin-bottom: 30px; border-radius: 8px; }
+        .toc-section h2 { margin-top: 0; border-bottom: 2px solid #b8daff; color: #004085; }
+        .toc-section ol { padding-left: 20px; }
+        .toc-section li { margin-bottom: 8px; }
+        .toc-section a { color: #0056b3; font-weight: bold; }
+        .toc-section code { color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Detailed Code Analysis: Function-Level Breakdown and Call Hierarchy</h1>
+        <p class="lead text-center">This section provides an in-depth analysis of each Google Apps Script (<code>.gs</code>) file, detailing the purpose and interactions of individual functions, followed by a comprehensive call hierarchy to illustrate the application's flow.</p>
+
+        <!-- NEW SECTION: TABLE OF CONTENTS -->
+        <div class="toc-section">
+            <h2>File Index (Level 1)</h2>
+            <p>This index lists all the code files analyzed in this document. Each file represents a "Level 1" section. Click a file name to jump directly to its detailed analysis.</p>
+            <ol>
+                <li><a href="#config-gs"><code>config.gs</code></a> - Global configurations and utilities.</li>
+                <li><a href="#logger-gs"><code>Logger.gs</code></a> - Application logging framework.</li>
+                <li><a href="#main-gs"><code>Main.gs</code></a> - Main triggers and UI entry points.</li>
+                <li><a href="#bqdtquery-gs"><code>BqDtQuery.gs</code></a> - BigQuery integration.</li>
+                <li><a href="#docgenerator-gs"><code>DocGenerator.gs</code></a> - Google Docs creation.</li>
+                <li><a href="#approvalworkflow-gs"><code>ApprovalWorkflow.gs</code></a> - Approver actions and logic.</li>
+                <li><a href="#ae-actions-gs"><code>AE_Actions.gs</code></a> - Account Executive actions.</li>
+                <li><a href="#sheetcoreautomations-gs"><code>SheetCoreAutomations.gs</code></a> - Core sheet calculations and automations.</li>
+                <li><a href="#sheetstatuslogic-gs"><code>SheetStatusLogic.gs</code></a> - Row status management.</li>
+                <li><a href="#uxcontrol-gs"><code>UxControl.gs</code></a> - Conditional formatting and UX.</li>
+                <li><a href="#testing-files"><code>Testing Files (.gs)</code></a> - Automated test suites.</li>
+            </ol>
+        </div>
+        
+        <hr>
+
+        <h3 id="config-gs">1. <code>config.gs</code></h3>
+        <p>This file serves as the central repository for global configurations and constants. It also provides essential utility functions.</p>
+        <div class="file-section">
+            <h4 class="mb-2"><code>CONFIG</code> (Global Variable)</h4>
+            <ul>
+                <li><strong>Purpose:</strong> A global object holding all application settings, including templates, cell locations, column mappings, BigQuery settings, approval workflow parameters (such as <span class="new-feature-highlight"><code>statusStrings</code> to define workflow states</span>), number formats, UI highlight colors, and <span class="new-feature-highlight">granular logging controls</span>.</li>
+                <li><strong>Inputs:</strong> N/A (initialized directly).</li>
+                <li><strong>Outputs:</strong> N/A (accessed directly).</li>
+                <li><strong>Key Logic:</strong> Defines static data structures.</li>
+                <li><strong>Dependencies:</strong> N/A</li>
+                <li><strong>Callers:</strong> Accessed by almost every other script file.</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>getColumnIndexByLetter(letter)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Converts a column letter (e.g., 'A', 'B') to its 1-based numerical index.</li>
+                <li><strong>Inputs:</strong> <code>letter</code> (string) - The column letter.</li>
+                <li><strong>Outputs:</strong> <code>number</code> - The 1-based numerical index of the column, or -1 if invalid.</li>
+                <li><strong>Key Logic:</strong> Iterates through the letters, converting each to its numerical value, and calculating the total column index.</li>
+                <li><strong>Dependencies:</strong> N/A</li>
+                <li><strong>Callers:</strong> `Logger.gs` (`logTableActivity`), `BqDtQuery.gs` (`getDataFromSKU`), `DocGenerator.gs` (`processFormSubmission`), `SheetCoreAutomations.gs` (`getNextAvailableIndex`, `setApproverControlsValidation`, `recalculateAllRows`, `handleSheetAutomations`), `UxControl.gs` (`applyColumnHighlighting`), `AE_Actions.gs` (`submitItemsForApproval`, `_handlePersonalMessageSubmission`), `ApprovalWorkflow.gs` (`processAllApproverActions`), `SheetStatusLogic.gs` (`updateStatusForRow`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>getLastLastRow(sheet)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Finds the last row in a sheet that actually contains data, ignoring empty rows or rows with only formatting. It uses <code>getDataRange()</code> which is more efficient than iterating.</li>
+                <li><strong>Inputs:</strong> <code>sheet</code> (GoogleAppsScript.Spreadsheet.Sheet) - The sheet to check.</li>
+                <li><strong>Outputs:</strong> <code>number</code> - The row number of the last row with content, or 0 if no content found.</li>
+                <li><strong>Key Logic:</strong> Tries `getDataRange().getLastRow()`. If less than `CONFIG.approvalWorkflow.startDataRow` or an error occurs, it falls back to iterating from `maxRows` downwards, checking each row for content.</li>
+                <li><strong>Dependencies:</strong> `CONFIG.approvalWorkflow.startDataRow`, `SpreadsheetApp`.</li>
+                <li><strong>Callers:</strong> `SheetCoreAutomations.gs` (`setApproverControlsValidation`, `recalculateAllRows`, `handleSheetAutomations`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>getLastPopulatedRowInColumn(sheet, columnIndex)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Finds the last row with content in a <i>specific column</i>.</li>
+                <li><strong>Inputs:</strong> <code>sheet</code> (GoogleAppsScript.Spreadsheet.Sheet) - The sheet to check. <code>columnIndex</code> (number) - The 1-based index of the column to check.</li>
+                <li><strong>Outputs:</strong> <code>number</code> - The row number of the last row with content in the specified column, or 0 if no content found.</li>
+                <li><strong>Key Logic:</strong> Reads all values in the specified column and iterates backward from the last row to find the first non-empty cell.</li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`.</li>
+                <li><strong>Callers:</strong> `SheetCoreAutomations.gs` (`getNextAvailableIndex`), `BqDtQuery.gs` (`getDataFromSKU`).</li>
+            </ul>
+        </div>
+
+        <h3 id="logger-gs">2. <code>Logger.gs</code></h3>
+        <p>This file contains the logging utility for the application, managing console debug logs and writing activity details to dedicated "Logs" sheets. <span class="new-feature-highlight">It has been significantly refactored for performance.</span></p>
+        <div class="file-section">
+            <h4 class="mb-2"><code>Log</code> (Global Object)</h4>
+            <ul>
+                <li><strong>Purpose:</strong> A new, high-performance global object providing file-specific logging methods (e.g., `Log.Main_gs`, `Log.SheetCoreAutomations_gs`).</li>
+                <li><strong>Inputs:</strong> N/A (initialized once on script load).</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> This object is dynamically configured at startup. Each file's logging function (e.g., `Log.SheetCoreAutomations_gs`) is pre-bound to either a function that calls `Logger.log` or an empty function, depending on its specific `CONFIG.logging.file` flag. This avoids costly runtime conditional checks on every log invocation, significantly reducing overhead when logging is disabled.</li>
+                <li><strong>Dependencies:</strong> `CONFIG.logging` (global variable).</li>
+                <li><strong>Callers:</strong> Accessed directly by almost every function in the application for console logging.</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>_getOrCreateLogSheet(sheetName, headerRow)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Gets a specific log sheet, creating it if it doesn't exist and setting its headers.</li>
+                <li><strong>Inputs:</strong> <code>sheetName</code> (string) - The name of the log sheet to get/create. <code>headerRow</code> (Array<string>) - The header row to set if the sheet is new or empty.</li>
+                <li><strong>Outputs:</strong> <code>GoogleAppsScript.Spreadsheet.Sheet</code> - The log sheet.</li>
+                <li><strong>Key Logic:</strong> Uses `SpreadsheetApp.getActiveSpreadsheet().getSheetByName` and `insertSheet`. If a new sheet is created or an existing one is empty, it appends the header row and bolds it.</li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`.</li>
+                <li><strong>Callers:</strong> `Logger.gs` (`logTableActivity`, `logDocumentActivity`, `logCommunicationActivity`, `logGeneralActivity`), `Main.gs` (`onOpen`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>_getUserDisplayName()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Safely gets the user's display name, falling back to parsing the email if `getName()` is not available (e.g., in `LIMITED` authMode).</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> <code>string</code> - The user's display name, or "Unknown User" as a last resort.</li>
+                <li><strong>Key Logic:</strong> Attempts `Session.getActiveUser().getName()`. If unsuccessful or empty, it parses the email from `Session.getActiveUser().getEmail()`. Includes error handling for restricted contexts.</li>
+                <li><strong>Dependencies:</strong> `Session`.</li>
+                <li><strong>Callers:</strong> `Logger.gs` (`logTableActivity`, `logDocumentActivity`, `logCommunicationActivity`, `logGeneralActivity`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>logTableActivity(options)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Logs data about changes to main sheet rows to the "TableLogs" sheet, attempting to maintain sorting by Index then Timestamp.</li>
+                <li><strong>Inputs:</strong> <code>options</code> (Object) - Contains `mainSheet`, `rowNum`, `newStatus`, `oldStatus`, `currentFullRowValues`, `originalFullRowValues`.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Checks `CONFIG.logging.sheetLogDisable`. Retrieves/creates the "TableLogs" sheet using `_getOrCreateLogSheet`. Gathers `userName` and `timestamp`. Constructs a log entry by extracting relevant data from `options.currentFullRowValues` based on `CONFIG.logSheets.tableLogs.columns`, including <span class="new-feature-highlight">special handling for "BQ_Prices" aggregation</span>. Reads all existing log data into memory, determines the correct insertion index to maintain sorting by "Index" then "Timestamp", inserts the new log entry into the in-memory array, clears the existing log sheet, and writes the entire updated log array back in bulk.</li>
+                <li><strong>Dependencies:</strong> `CONFIG.logSheets.tableLogs`, `CONFIG.documentDeviceData.columns`, `CONFIG.approvalWorkflow.columns`, `_getOrCreateLogSheet`, `_getUserDisplayName`, `getColumnIndexByLetter` (from `config.gs`), `Utilities`, `SpreadsheetApp`.</li>
+                <li><strong>Callers:</strong> `SheetStatusLogic.gs` (`updateStatusForRow`), `BqDtQuery.gs` (`getDataFromSKU`), `ApprovalWorkflow.gs` (`handleApprovalEdit`, `processAllApproverActions`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>logDocumentActivity(options)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Logs data about document generation activities to the "DocumentLogs" sheet.</li>
+                <li><strong>Inputs:</strong> <code>options</code> (Object) - Contains `action`, `docName`, `docUrl`, `customerCompany`, `offerType`, `language`, `details`.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Checks `CONFIG.logging.sheetLogDisable`. Retrieves/creates the "DocumentLogs" sheet. Gathers `userName` and `timestamp`. Constructs a log entry from provided options and appends the row.</li>
+                <li><strong>Dependencies:</strong> `CONFIG.logSheets.documentLogs`, `_getOrCreateLogSheet`, `_getUserDisplayName`, `Utilities`, `SpreadsheetApp`.</li>
+                <li><strong>Callers:</strong> `DocGenerator.gs` (`processFormSubmission`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>logCommunicationActivity(options)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Logs data about email or other communication activities to the "CommunicationLogs" sheet.</li>
+                <li><strong>Inputs:</strong> <code>options</code> (Object) - Contains `sender`, `recipient`, `subject`, `type`, `details`.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Checks `CONFIG.logging.sheetLogDisable`. Retrieves/creates the "CommunicationLogs" sheet. Gathers `senderName` (using `_getUserDisplayName`) and `timestamp`. Constructs a log entry from provided options and appends the row.</li>
+                <li><strong>Dependencies:</strong> `CONFIG.logSheets.communicationLogs`, `_getOrCreateLogSheet`, `_getUserDisplayName`, `Utilities`, `SpreadsheetApp`, `Session`.</li>
+                <li><strong>Callers:</strong> `AE_Actions.gs` (`sendApprovalRequestEmail`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>logGeneralActivity(options)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Logs general application events and errors to the "GeneralLogs" sheet.</li>
+                <li><strong>Inputs:</strong> <code>options</code> (Object) - Contains `action`, `details`.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Checks `CONFIG.logging.sheetLogDisable`. Retrieves/creates the "GeneralLogs" sheet. Gathers `userName` and `timestamp`. Constructs a log entry from provided options and appends the row.</li>
+                <li><strong>Dependencies:</strong> `CONFIG.logSheets.generalLogs`, `_getOrCreateLogSheet`, `_getUserDisplayName`, `Utilities`, `SpreadsheetApp`.</li>
+                <li><strong>Callers:</strong> `Main.gs` (`onOpen`), `AE_Actions.gs` (`submitItemsForApproval`, `_handlePersonalMessageSubmission`, `sendApprovalRequestEmail`), `BqDtQuery.gs` (`getDataFromSKU`), `DocGenerator.gs` (`processFormSubmission`), `ApprovalWorkflow.gs` (`handleApprovalEdit`, `processAllApproverActions`), `SheetStatusLogic.gs` (`updateStatusForRow`).</li>
+            </ul>
+        </div>
+
+        <h3 id="main-gs">3. <code>Main.gs</code></h3>
+        <p>This is the primary entry point for the application within the Google Sheet environment. It handles initial setup (menu creation) and acts as the central dispatcher for the <code>onEdit</code> trigger.</p>
+        <div class="file-section">
+            <h4 class="mb-2"><code>onOpen(e)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Triggered when the spreadsheet is opened. Creates custom menus in the Google Sheet UI, <span class="new-feature-highlight">ensures all log sheets and their headers exist</span>, initiates a full sheet refresh (recalculations), and conditionally applies conditional formatting.</li>
+                <li><strong>Inputs:</strong> <code>e</code> (Object) - The event object.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Creates `Additional Functions` and `Project Info` menus. <span class="new-feature-highlight">Calls `_addTestMenus` for test-related menus.</span> Calls `_getOrCreateLogSheet` for all log sheets. Calls `recalculateAllRows` to ensure data consistency. Checks if conditional formatting is already set using `isConditionalFormattingAlreadySet` and applies it via `applyConditionalFormatting` and `applyColumnHighlighting` if needed to prevent slow re-application on every open. Logs the sheet opening to `GeneralLogs`.</li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `HtmlService`, `_getOrCreateLogSheet` (from `Logger.gs`), `recalculateAllRows` (from `SheetCoreAutomations.gs`), `isConditionalFormattingAlreadySet`, `applyConditionalFormatting` (from `UxControl.gs`), `applyColumnHighlighting` (from `UxControl.gs`), `logGeneralActivity` (from `Logger.gs`), `getDataFromSKU` (from `BqDtQuery.gs`), `showOfferDialog` (from `DocGenerator.gs`), `submitItemsForApproval` (from `AE_Actions.gs`), `processAllApproverActions` (from `ApprovalWorkflow.gs`), `showApplicationOverviewDialog` (from this file), <span class="new-feature-highlight">`_addTestMenus` (from `Tests.gs`)</span>.</li>
+                <li><strong>Callers:</strong> Triggered automatically by Google Sheets on spreadsheet open. Also called by `onInstall`.</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>onInstall(e)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Triggered when the add-on is installed.</li>
+                <li><strong>Inputs:</strong> <code>e</code> (Object) - The event object.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Simply calls <code>onOpen(e)</code> to ensure initial setup.</li>
+                <li><strong>Dependencies:</strong> `onOpen`.</li>
+                <li><strong>Callers:</strong> Triggered automatically by Google Sheets on add-on install.</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>onEdit(e)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> The core automated trigger, running every time a cell is edited. It dispatches to <code>handleSheetAutomations</code> for all row-level edits.</li>
+                <li><strong>Inputs:</strong> <code>e</code> (Object) - The event object from the onEdit trigger.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Logs event details and then calls <span class="new-feature-highlight">`handleSheetAutomations(e)` as the main dispatcher, passing the full event object for detailed processing</span>.</li>
+                <li><strong>Dependencies:</strong> `handleSheetAutomations` (from `SheetCoreAutomations.gs`).</li>
+                <li><strong>Callers:</strong> Triggered automatically by Google Sheets on cell edits.</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>isConditionalFormattingAlreadySet(sheet)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Helper to check if conditional formatting rules are already present on the sheet to prevent redundant applications on open.</li>
+                <li><strong>Inputs:</strong> <code>sheet</code> (GoogleAppsScript.Spreadsheet.Sheet) - The sheet to check.</li>
+                <li><strong>Outputs:</strong> <code>boolean</code> - True if any conditional formatting rules are found, false otherwise.</li>
+                <li><strong>Key Logic:</strong> Retrieves current rules using `sheet.getConditionalFormatRules()` and checks if the array is not empty.</li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`.</li>
+                <li><strong>Callers:</strong> `Main.gs` (`onOpen`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>showApplicationOverviewDialog()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Displays the full Application Overview HTML dialog with tabs.</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> N/A (displays UI).</li>
+                <li><strong>Key Logic:</strong> Creates an `HtmlOutput` from 'ApplicationOverview.html', sets its dimensions and title, and displays it as a modal dialog.</li>
+                <li><strong>Dependencies:</strong> `HtmlService`, `SpreadsheetApp`.</li>
+                <li><strong>Callers:</strong> `Main.gs` (`onOpen` via custom menu).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>getOverviewContent()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Returns the raw HTML content for the 'Overview' tab.</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> <code>string</code> - Raw HTML content.</li>
+                <li><strong>Key Logic:</strong> Provides a static HTML string representing the overview.</li>
+                <li><strong>Dependencies:</strong> N/A.</li>
+                <li><strong>Callers:</strong> `ApplicationOverview.html` (client-side `google.script.run`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>getUserGuideContent()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Reads and returns the raw HTML content for the 'User Guide' tab.</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> <code>string</code> - Raw HTML content from `UserGuide.html`.</li>
+                <li><strong>Key Logic:</strong> Uses `HtmlService.createTemplateFromFile('UserGuide').evaluate().getContent()` to read the HTML file.</li>
+                <li><strong>Dependencies:</strong> `HtmlService`.</li>
+                <li><strong>Callers:</strong> `ApplicationOverview.html` (client-side `google.script.run`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>getOfferDocumentDetailsContent()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Reads and returns the raw HTML content for the 'Offer Document' tab.</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> <code>string</code> - Raw HTML content from `OfferDocumentDetails.html`.</li>
+                <li><strong>Key Logic:</strong> Uses `HtmlService.createTemplateFromFile('OfferDocumentDetails').evaluate().getContent()` to read the HTML file.</li>
+                <li><strong>Dependencies:</strong> `HtmlService`.</li>
+                <li><strong>Callers:</strong> `ApplicationOverview.html` (client-side `google.script.run`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>getTechnicalDetailsContent()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Reads and returns the raw HTML content for the 'Technical Details' tab.</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> <code>string</code> - Raw HTML content from `TechnicalDetails.html`.</li>
+                <li><strong>Key Logic:</strong> Uses `HtmlService.createTemplateFromFile('TechnicalDetails').evaluate().getContent()` to read the HTML file.</li>
+                <li><strong>Dependencies:</strong> `HtmlService`.</li>
+                <li><strong>Callers:</strong> `ApplicationOverview.html` (client-side `google.script.run`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>getCodeAnalysisContent()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Reads and returns the raw HTML content for the 'Code Analysis' tab.</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> <code>string</code> - Raw HTML content from `CodeAnalysis.html`.</li>
+                <li><strong>Key Logic:</strong> Uses `HtmlService.createTemplateFromFile('CodeAnalysis').evaluate().getContent()` to read the HTML file.</li>
+                <li><strong>Dependencies:</strong> `HtmlService`.</li>
+                <li><strong>Callers:</strong> `ApplicationOverview.html` (client-side `google.script.run`).</li>
+            </ul>
+        </div>
+
+        <h3 id="bqdtquery-gs">4. <code>BqDtQuery.gs</code></h3>
+        <p>Manages the integration with Google BigQuery to fetch product pricing and device details based on SKUs.</p>
+        <div class="file-section">
+            <h4 class="mb-2"><code>getDataFromSKU()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Triggered via the custom menu. Reads SKUs from the sheet, constructs a BigQuery request, fetches data, and updates the sheet with retrieved EP/TK Capex, Rental Target/Limit, and Device Model. It also triggers status updates and calculations for affected rows. Features <span class="new-feature-highlight">strict logic to prevent unintended data clearing in rows without relevant SKUs</span>.</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong>
+                    <ol>
+                        <li>Collects all unique SKUs from the sheet.</li>
+                        <li>Calls <code>performBqQuery</code> to get data from BigQuery.</li>
+                        <li><strong>Reads the entire sheet's data into memory</strong> (`allSheetDataValuesBefore` and a modifiable copy `allSheetDataValuesAfter`).</li>
+                        <li>Iterates through the in-memory array (`allSheetDataValuesAfter`):
+                            <ul>
+                                <li>If a row's SKU has valid BQ data, it updates the corresponding raw data fields and Model in the in-memory row.</li>
+                                <li>If a row's SKU was deleted (was present before, now empty), and it previously had BQ data, it clears the BQ-derived fields in the in-memory row.</li>
+                                <li>Calls <code>updateCalculationsForRow</code> and <code>updateStatusForRow</code> on the in-memory row to ensure consistency.</li>
+                                <li>Rows without a relevant SKU change are left untouched.</li>
+                            </ul>
+                        </li>
+                        <li>Writes the entire modified `allSheetDataValuesAfter` array back to the sheet in a single bulk operation.</li>
+                        <li>Compares the before/after arrays to log only the changed rows to `TableLogs`.</li>
+                    </ol>
+                </li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `Utilities`, `CONFIG`, `getColumnIndexByLetter` (from `config.gs`), `getLastPopulatedRowInColumn` (from `config.gs`), `performBqQuery`, `updateCalculationsForRow` (from `SheetCoreAutomations.gs`), `updateStatusForRow` (from `SheetStatusLogic.gs`), `logGeneralActivity` (from `Logger.gs`), `logTableActivity` (from `Logger.gs`).</li>
+                <li><strong>Callers:</strong> `Main.gs` (via custom menu).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>performBqQuery(uniqueSkusToQuery)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Executes the actual BigQuery API call, waits for results, and parses them into a map for easy lookup by SKU.</li>
+                <li><strong>Inputs:</strong> <code>uniqueSkusToQuery</code> (Array<string>) - An array of unique SKU strings to query.</li>
+                <li><strong>Outputs:</strong> <code>Map<string, Object></code> - A map where keys are SKU strings and values are objects containing BQ data.</li>
+                <li><strong>Key Logic:</strong> Builds a SQL query, initiates a BigQuery job using `BigQuery.Jobs.query`, polls `BigQuery.Jobs.getQueryResults` until completion or timeout, and parses results into a map. Throws errors if API calls fail.</li>
+                <li><strong>Dependencies:</strong> `CONFIG.bqQuerySettings`, `BigQuery` (service), `Utilities`.</li>
+                <li><strong>Callers:</strong> `BqDtQuery.gs` (`getDataFromSKU`).</li>
+            </ul>
+        </div>
+
+        <h3 id="docgenerator-gs">5. <code>DocGenerator.gs</code></h3>
+        <p>Handles the generation of Google Docs offer documents based on data in the spreadsheet and user input from an HTML form.</p>
+        <div class="file-section">
+            <h4 class="mb-2"><code>formatDateForLocale(dateStringYYYYMMDD, language)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Formats a date string for a specific locale ('de-DE' for German).</li>
+                <li><strong>Inputs:</strong> <code>dateStringYYYYMMDD</code> (string or Date object) - The date to format. <code>language</code> (string) - The target language ("german" or "english").</li>
+                <li><strong>Outputs:</strong> <code>string</code> - The formatted date string, or an empty string/original string if input is invalid.</li>
+                <li><strong>Key Logic:</strong> Handles `Date` objects and `YYYY-MM-DD` strings. Uses `toLocaleDateString` for German formatting.</li>
+                <li><strong>Dependencies:</strong> N/A.</li>
+                <li><strong>Callers:</strong> `DocGenerator.gs` (`showOfferDialog`, `processFormSubmission`, `populateDocContent`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>formatNumberForLocale(number, language, includeCurrencySymbol)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Formats a number for a specific locale, optionally including a currency symbol.</li>
+                <li><strong>Inputs:</strong> <code>number</code> (number) - The number to format. <code>language</code> (string) - The target language ("german" or "english"). <code>includeCurrencySymbol</code> (boolean) - Whether to prepend '€'.</li>
+                <li><strong>Outputs:</strong> <code>string</code> - The formatted number string, or an empty string if input is invalid.</li>
+                <li><strong>Key Logic:</strong> Uses `toLocaleString` with `de-DE` or `en-US` locale and fixed decimal places.</li>
+                <li><strong>Dependencies:</strong> N/A.</li>
+                <li><strong>Callers:</strong> `DocGenerator.gs` (`populateDeviceTable`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>formatTermForLocale(termValue, language)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Formats a contract term value by appending " Monate" for German or " months" for English.</li>
+                <li><strong>Inputs:</strong> <code>termValue</code> (any) - The term value. <code>language</code> (string) - The target language ("german" or "english").</li>
+                <li><strong>Outputs:</strong> <code>string</code> - The formatted term string, or an empty string/original value if invalid.</li>
+                <li><strong>Key Logic:</strong> Cleans the input to extract only digits and appends the appropriate suffix.</li>
+                <li><strong>Dependencies:</strong> N/A.</li>
+                <li><strong>Callers:</strong> `DocGenerator.gs` (`populateDocContent`, `populateDeviceTable`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>showOfferDialog()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Displays an HTML dialog (<code>OfferForm.html</code>) to collect additional offer details from the user. It pre-populates the form with existing sheet data.</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> N/A (displays UI).</li>
+                <li><strong>Key Logic:</strong> Creates a template from <code>OfferForm.html</code>. Reads various offer details from the active sheet using <code>CONFIG.offerDetailsCells</code>. Prepares a <code>formDataDefaults</code> object to pass to the HTML template. Shows a modal dialog with a localized title.</li>
+                <li><strong>Dependencies:</strong> `HtmlService`, `SpreadsheetApp`, `Session`, `CONFIG.offerDetailsCells`, `formatDateForLocale`.</li>
+                <li><strong>Callers:</strong> `Main.gs` (via custom menu).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>processFormSubmission(formData)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Called from <code>OfferForm.html</code>. Takes form data, updates relevant sheet cells, processes approved device data from the sheet, copies a Google Doc template, and populates it with all collected information.</li>
+                <li><strong>Inputs:</strong> <code>formData</code> (Object) - Data submitted from the HTML form.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Updates sheet cells with form data, fetches/filters approved device data, calculates grand total, determines new document name, selects template, copies template, opens doc, calls `populateDocContent`, saves/closes doc, logs creation, and displays success dialog. Includes error handling.</li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `DriveApp`, `DocumentApp`, `CONFIG`, `getColumnIndexByLetter` (from `config.gs`), `getNumericValue` (from `SheetCoreAutomations.gs`), `populateDocContent`, `logDocumentActivity` (from `Logger.gs`), `logGeneralActivity` (from `Logger.gs`), `showSuccessDialog`.</li>
+                <li><strong>Callers:</strong> `OfferForm.html` (client-side `google.script.run`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>populateDocContent(doc, formData, customerCompanyName, devicesData, grandTotal, docLanguage)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Fills the copied Google Doc with general offer details (customer, contact, dates, special agreements) by replacing placeholders.</li>
+                <li><strong>Inputs:</strong> <code>doc</code> (GoogleAppsScript.Document.Document) - The document to populate. <code>formData</code> (Object) - Data from the form. <code>customerCompanyName</code> (string). <code>devicesData</code> (Array<Object>) - Array of approved device data. <code>grandTotal</code> (number) - Total rental price. <code>docLanguage</code> (string) - Document language.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Replaces various text placeholders in the document body. Dynamically handles the "Special Agreements" section (adds/removes paragraph based on content). Calls `populateDeviceTable` to fill the device table.</li>
+                <li><strong>Dependencies:</strong> `DocumentApp`, `formatDateForLocale`, `formatTermForLocale`, `populateDeviceTable`.</li>
+                <li><strong>Callers:</strong> `DocGenerator.gs` (`processFormSubmission`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>populateDeviceTable(doc, devicesData, grandTotal, language)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Populates the device table within the Google Doc using data from approved items in the sheet, ensuring correct formatting.</li>
+                <li><strong>Inputs:</strong> <code>doc</code> (GoogleAppsScript.Document.Document) - The document containing the table. <code>devicesData</code> (Array<Object>) - Array of approved device data. <code>grandTotal</code> (number) - Overall grand total. <code>language</code> (string) - Document language.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Finds the first table, applies border styles, inserts new rows for each device, populates cells with formatted data, removes the template row, and updates the "Total" row.</li>
+                <li><strong>Dependencies:</strong> `DocumentApp`, `formatTermForLocale`, `formatNumberForLocale`.</li>
+                <li><strong>Callers:</strong> `DocGenerator.gs` (`populateDocContent`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>showSuccessDialog(docUrl, message)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Displays a simple confirmation message and provides a link to the newly generated offer document after a successful operation.</li>
+                <li><strong>Inputs:</strong> <code>docUrl</code> (string) - URL of the generated document. <code>message</code> (string) - The message to display.</li>
+                <li><strong>Outputs:</strong> N/A (displays UI).</li>
+                <li><strong>Key Logic:</strong> Creates a template from <code>SuccessDialog.html</code>, passes `docUrl` and `message`, and shows a modal dialog.</li>
+                <li><strong>Dependencies:</strong> `HtmlService`, `SpreadsheetApp`.</li>
+                <li><strong>Callers:</strong> `DocGenerator.gs` (`processFormSubmission`).</li>
+            </ul>
+        </div>
+
+        <h3 id="approvalworkflow-gs">6. <code>ApprovalWorkflow.gs</code></h3>
+        <p>This file contains all functions related to the approver's direct actions, such as processing rows via checkbox or the menu.</p>
+        <div class="file-section">
+            <h4 class="mb-2"><code>handleApprovalEdit(...)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Handles single-row approval processing when an approver checks a box. This function is designed for a pure in-memory operation to ensure testability and performance.</li>
+                <li><strong>Inputs:</strong> <code>sheet</code>, <code>rowNum</code>, <code>editedColNum</code>, <code>e</code>, <code>inMemoryRowValues</code>, <code>allColIndexes</code>, <code>originalFullRowValuesFromCaller</code>.</li>
+                <li><strong>Outputs:</strong> <span class="new-feature-highlight"><code>Array<any></code> - The modified (or original, if no change) row array. The caller (`handleSheetAutomations`) is responsible for using this returned array.</span></li>
+                <li><strong>Key Logic:</strong>
+                    <ol>
+                        <li><strong>Refactored Contract:</strong> The function no longer relies on modifying arguments by reference. It operates on the input `inMemoryRowValues` and returns the final state of the array at every exit point. This makes its behavior explicit and robust.</li>
+                        <li><strong>Unchecking Logic:</strong> If a "processed" checkbox is unchecked, it reverts the status to "Pending Approval" and clears approval details in the `inMemoryRowValues` array.</li>
+                        <li><strong>Checking Logic:</strong> Validates the selected action. If valid, it performs the status change and updates approver details (name, date, price) within the array. If validation fails (e.g., missing comments), it reverts the checkbox to `"FALSE"` *in the array* and displays an alert to the user.</li>
+                    </ol>
+                </li>
+                <li><strong>Dependencies:</strong> `Session`, `CONFIG.approvalWorkflow`, `getNumericValue` (from `SheetCoreAutomations.gs`), `logTableActivity` (from `Logger.gs`), `logGeneralActivity` (from `Logger.gs`).</li>
+                <li><strong>Callers:</strong> `SheetCoreAutomations.gs` (`handleSheetAutomations`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>processAllApproverActions()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Processes all rows based on the "Approver Action" dropdown. This function processes in-memory and then performs a single bulk write.</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> N/A (updates sheet, displays alert).</li>
+                <li><strong>Key Logic:</strong>
+                    <ol>
+                        <li>Reads all relevant data into `oldRangeValues` and creates a deep copy `newRangeValues` for modification.</li>
+                        <li>Iterates through each row in the `newRangeValues` array.</li>
+                        <li>For rows with an `approverAction` and status of "Pending Approval" or "Revised by AE":
+                            <ul>
+                                <li>Evaluates the action ("Approve", "Reject", "Request Revision").</li>
+                                <li>Validates input (e.g., comments for Reject/Revision, AE Sales Ask Price for Approve).</li>
+                                <li>If valid, it updates the row's status, `Approved By`, `Approval Date`, `Finance Approved Price`, and sets `processActionCheckbox` to `true` within the `newRangeValues` array.</li>
+                                <li>Logs each successful row processing to `TableLogs`.</li>
+                                <li>Collects any validation errors for a final report.</li>
+                            </ul>
+                        </li>
+                    </ol>
+                    If any rows were processed, it writes the entire `newRangeValues` array back to the sheet in a single bulk operation and calls `SpreadsheetApp.flush()`. Finally, it displays a summary alert to the user, including any validation errors. Logs the overall bulk action to `GeneralLogs`.
+                </li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `Session`, `CONFIG`, `getColumnIndexByLetter` (from `config.gs`), `getNumericValue` (from `SheetCoreAutomations.gs`), `logTableActivity` (from `Logger.gs`), `logGeneralActivity` (from `Logger.gs`).</li>
+                <li><strong>Callers:</strong> `Main.gs` (via custom menu).</li>
+            </ul>
+        </div>
+
+        <h3 id="ae-actions-gs">7. <code>AE_Actions.gs</code></h3>
+        <p>Provides functionalities for Account Executives (AEs) to submit pending items for approval and optionally add a personal message to the approver.</p>
+        <div class="file-section">
+            <h4 class="mb-2"><code>submitItemsForApproval()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Finds all items that are pending approval ('Pending Approval' or 'Revised by AE'), and sends a summary email notification to the approver. This function does not change the status of the rows.</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> N/A (displays UI, sends email).</li>
+                <li><strong>Key Logic:</strong> Scans rows for pending/revised items. If items are found, it retrieves current AE/customer/Telekom deal info from the sheet and displays the `PersonalMessageDialog.html` to collect a message and confirm details. If no items are found, it displays an alert and logs the event.</li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `HtmlService`, `CONFIG.approvalWorkflow`, `CONFIG.offerDetailsCells`, `getColumnIndexByLetter` (from `config.gs`), `logGeneralActivity` (from `Logger.gs`).</li>
+                <li><strong>Callers:</strong> `Main.gs` (via custom menu).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>_handlePersonalMessageSubmission(personalMessage, aeName, customerCompany, telekomDeal)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Called from the client-side <code>PersonalMessageDialog.html</code> after the user enters a message or cancels. It receives the personal message and then proceeds with sending the email and showing the final notification.</li>
+                <li><strong>Inputs:</strong> <code>personalMessage</code> (string | null), <code>aeName</code> (string | null), <code>customerCompany</code> (string | null), <code>telekomDeal</code> (string | null).</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Checks for cancellation. Updates sheet cells if data was provided in the dialog. Re-scans for items to notify, gathers summary data, and calls `sendApprovalRequestEmail`. Displays a final confirmation alert and logs the successful submission.</li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `CONFIG.offerDetailsCells`, `CONFIG.approvalWorkflow`, `getColumnIndexByLetter` (from `config.gs`), `sendApprovalRequestEmail`, `logGeneralActivity` (from `Logger.gs`).</li>
+                <li><strong>Callers:</strong> `PersonalMessageDialog.html` (client-side `google.script.run`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>sendApprovalRequestEmail(summaryData)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Helper function that constructs and sends an email notification to the designated approver, summarizing the request and providing a link to the Google Sheet. It uses an HTML template (<code>ApprovalEmail.html</code>).</li>
+                <li><strong>Inputs:</strong> <code>summaryData</code> (Object) - Contains `itemCount`, `customerCompany`, `offerType`, `submitterName`, `personalMessage`, `telekomDealStatus`.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Validates input and `approverEmail`. Constructs email subject. Creates a template from <code>ApprovalEmail.html</code>, passes summary data and sheet details. Sends email using <code>MailApp.sendEmail</code>. Logs email activity (success/failure) to <code>CommunicationLogs</code> and `GeneralLogs`.</li>
+                <li><strong>Dependencies:</strong> `MailApp`, `HtmlService`, `SpreadsheetApp`, `Session`, `CONFIG.approvalWorkflow.approverEmail`, `logCommunicationActivity` (from `Logger.gs`), `logGeneralActivity` (from `Logger.gs`).</li>
+                <li><strong>Callers:</strong> `AE_Actions.gs` (`_handlePersonalMessageSubmission`).</li>
+            </ul>
+        </div>
+
+        <h3 id="sheetcoreautomations-gs">8. <code>SheetCoreAutomations.gs</code></h3>
+        <p>Contains the central logic for automatic calculations and general sheet automations triggered by edits or manual refreshes. It's designed for efficient batch processing of row data.</p>
+        <div class="file-section">
+            <h4 class="mb-2"><code>getNumericValue(value)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> A robust and performant function to convert a potential currency string or number into a clean numeric value. It prioritizes speed by checking for a number type first (fast path). The string parsing fallback is designed to handle various formats (e.g., English "1,234.56" and German "1.234,56") without a language parameter. <span class="new-feature-highlight">This function replaces the older `parseCurrencyValue` function.</span></li>
+                <li><strong>Inputs:</strong> <code>value</code> (any) - The value from a sheet cell to parse.</li>
+                <li><strong>Outputs:</strong> <code>number</code> - The parsed number, or 0 if parsing is not possible.</li>
+                <li><strong>Key Logic:</strong>
+                    <ol>
+                        <li><strong>Fast Path:</strong> If `value` is already a number, returns it.</li>
+                        <li><strong>Handling Non-Strings:</strong> Returns 0 for non-string or empty inputs.</li>
+                        <li><strong>String Parsing:</strong> Removes currency symbols. Uses a two-step `replace` to intelligently remove thousands separators (both '.' and ',' followed by 3 digits) and then standardizes any remaining comma to a decimal dot.</li>
+                        <li><strong>Validation:</strong> Uses a regex to validate the cleaned string before `parseFloat`, returning 0 if invalid characters are present.</li>
+                    </ol>
+                </li>
+                <li><strong>Dependencies:</strong> N/A.</li>
+                <li><strong>Callers:</strong> `DocGenerator.gs` (`processFormSubmission`), `SheetCoreAutomations.gs` (`updateCalculationsForRow`), `SheetStatusLogic.gs` (`updateStatusForRow`), `ApprovalWorkflow.gs` (`handleApprovalEdit`, `processAllApproverActions`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>getNextAvailableIndex(sheet)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Finds the maximum existing index in column 'F' (<code>CONFIG.documentDeviceData.columns.index</code>) and returns the next available index (max + 1).</li>
+                <li><strong>Inputs:</strong> <code>sheet</code> (GoogleAppsScript.Spreadsheet.Sheet) - The active sheet.</li>
+                <li><strong>Outputs:</strong> <code>number</code> - The next available index number.</li>
+                <li><strong>Key Logic:</strong> Reads values from the index column, parses them to numbers, finds the maximum, and adds 1.</li>
+                <li><strong>Dependencies:</strong> `CONFIG`, `getColumnIndexByLetter` (from `config.gs`), `getLastPopulatedRowInColumn` (from `config.gs`).</li>
+                <li><strong>Callers:</strong> `SheetCoreAutomations.gs` (`recalculateAllRows`, `handleSheetAutomations`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>setApproverControlsValidation(sheet)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Applies data validation rules for the "Approver Action" dropdown and "Process Action Checkbox" columns. This function should be called after bulk data updates to ensure validations are consistently applied. It clears existing rules for these columns within the data range and applies new ones.</li>
+                <li><strong>Inputs:</strong> <code>sheet</code> (GoogleAppsScript.Spreadsheet.Sheet) - The active sheet.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Determines the data range. Retrieves existing data validation from a template cell (`CONFIG.offerDetailsCells.approverActionTemplate`) for the dropdown and creates a checkbox rule. Applies these rules to the respective columns across the data range.</li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `CONFIG`, `getLastLastRow` (from `config.gs`), `getColumnIndexByLetter` (from `config.gs`).</li>
+                <li><strong>Callers:</strong> `SheetCoreAutomations.gs` (`recalculateAllRows`, `handleSheetAutomations`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>recalculateAllRows(options)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Performs a full recalculation of LRF and Contract Value for all data rows in the sheet. It also re-evaluates row statuses and auto-assigns indexes. This is typically called on sheet open or when a global setting (like "Telekom Deal") changes.</li>
+                <li><strong>Inputs:</strong> <code>options</code> (Object) - Optional. Contains `oldValueIsTelekomDeal` to track revision state changes.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Reads all data into a memory array (`allValuesAfter`). Iterates through this in-memory array. For each row: auto-assigns an index if missing, calls `updateCalculationsForRow` and `updateStatusForRow` to modify the in-memory row data. After processing all rows in memory, it writes the entire updated array back to the sheet in a single batch operation and applies data validations.</li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `CONFIG`, `getLastLastRow` (from `config.gs`), `getColumnIndexByLetter` (from `config.gs`), `getNextAvailableIndex`, `updateStatusForRow` (from `SheetStatusLogic.gs`), `updateCalculationsForRow`, `setApproverControlsValidation`.</li>
+                <li><strong>Callers:</strong> `Main.gs` (`onOpen`), `SheetCoreAutomations.gs` (`handleSheetAutomations`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>handleSheetAutomations(e)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Main `onEdit` trigger handler for sheet automations. It dispatches to other functions based on the edited range. This function robustly handles multi-cell pastes and ensures correct in-memory data for processing.</li>
+                <li><strong>Inputs:</strong> <code>e</code> (Object) - The event object from the onEdit trigger.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong>
+                    <ul>
+                        <li>If `Telekom Deal` cell is edited, it calls `recalculateAllRows` for a full refresh.</li>
+                        <li>For row edits, it reads the affected rows into memory (`allValuesAfter`) and applies the new value(s) from the event object to the in-memory data.</li>
+                        <li>It iterates over all edited rows in memory to auto-assign an index if needed, and call `updateCalculationsForRow`.</li>
+                        <li>If the "Process Action" checkbox was edited, it calls `handleApprovalEdit` and **reassigns the returned, modified row** back into the main `allValuesAfter` array. This is critical for persisting the state change.</li>
+                        <li>Otherwise, it calls `updateStatusForRow` to handle status transitions.</li>
+                        <li>Finally, it writes all updated rows back to the sheet in one batch and applies data validations.</li>
+                    </ul>
+                </li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `CONFIG`, `recalculateAllRows`, `getLastLastRow` (from `config.gs`), `getNextAvailableIndex`, `updateStatusForRow` (from `SheetStatusLogic.gs`), `handleApprovalEdit` (from `ApprovalWorkflow.gs`), `updateCalculationsForRow`, `setApproverControlsValidation`.</li>
+                <li><strong>Callers:</strong> `Main.gs` (`onEdit`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>updateCalculationsForRow(rowValues, isTelekomDeal, colIndexes, approvalWorkflowConfig)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Calculates and updates **both** the LRF (Leveraged Rental Factor) and Contract Value for a specific row's in-memory data. This function modifies the provided `rowValues` array in place. <span class="new-feature-highlight">It now explicitly receives `approvalWorkflowConfig` (from `CONFIG.approvalWorkflow`) as a parameter for better testability and modularity.</span></li>
+                <li><strong>Inputs:</strong> <code>rowValues</code> (Array<any>) - The 0-indexed array representing the row's values. <code>isTelekomDeal</code> (boolean) - True if it's a Telekom deal, affecting CAPEX choice. <code>colIndexes</code> (Object) - An object containing 1-based column indexes for relevant columns. `approvalWorkflowConfig` (Object) - The `CONFIG.approvalWorkflow` object.</li>
+                <li><strong>Outputs:</strong> N/A (modifies `rowValues` in place).</li>
+                <li><strong>Key Logic:</strong> Determines `rentalPrice` based on status (uses final approved price if available, otherwise falls back to approver-proposed or AE price). Parses CAPEX values using `getNumericValue`. Selects `chosenCapex` based on `isTelekomDeal`. Calculates LRF (`(rentalPrice * term) / totalCapex`) or sets to "Missing CAPEX". Calculates Contract Value (`rentalPrice * term * quantity`). Updates the `lrfPreview` and `contractValuePreview` columns in the `rowValues` array.</li>
+                <li><strong>Dependencies:</strong> `getNumericValue`.</li>
+                <li><strong>Callers:</strong> `BqDtQuery.gs` (`getDataFromSKU`), `SheetCoreAutomations.gs` (`recalculateAllRows`, `handleSheetAutomations`).</li>
+            </ul>
+        </div>
+
+        <h3 id="sheetstatuslogic-gs">9. <code>SheetStatusLogic.gs</code></h3>
+        <p>This file handles the logic for managing row statuses within the approval workflow, including AE input and revision handling.</p>
+        <div class="file-section">
+            <h4 class="mb-2"><code>updateStatusForRow(...)</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> The core function for updating row status. It updates the status of a given row within the <i>in-memory array</i> (<code>inMemoryRowValues</code>) based on the completeness of AE input fields, transitioning status from 'Draft' to 'Pending Approval'. Critically, it also handles 'Revision Requested' and 'Approved' items: if key AE input fields are changed on such items, it prompts the user (for single edits) and sets the status to 'Revised by AE', clearing previous approval data.</li>
+                <li><strong>Inputs:</strong> <code>sheet</code>, <code>rowNum</code>, <code>editedColNum</code>, <code>e</code>, <code>inMemoryRowValues</code>, <code>allColIndexes</code>, <code>originalFullRowValuesFromCaller</code>, <code>options</code> (including `isTelekomDeal` state).</li>
+                <li><strong>Outputs:</strong> <code>boolean</code> - True if `inMemoryRowValues` were modified by this function, false otherwise.</li>
+                <li><strong>Key Logic:</strong>
+                    <ol>
+                        <li><strong>First Pass (Draft/Clear Logic):</strong> If `modelValue` exists and no `currentStatus`, sets to "Draft". If `modelValue` is empty, clears the row's status and approval-related data in the array.</li>
+                        <li><strong>Second Pass (Draft to Pending Approval):</strong> If `currentStatus` is "Draft" and sufficient AE data is provided (price, quantity, term), transitions status to "Pending Approval".</li>
+                        <li><strong>Third Pass (Revision Logic):</strong> If a revision-triggering column was edited on a processed item (or the global "Telekom Deal" setting changed), it sets the status to `Revised by AE` and clears previous approval data from the array.</li>
+                    </ol>
+                    Logs status changes to `TableLogs` if the status actually changed.
+                </li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp.getUi`, `CONFIG`, `getNumericValue` (from `SheetCoreAutomations.gs`), `logTableActivity` (from `Logger.gs`), `logGeneralActivity` (from `Logger.gs`).</li>
+                <li><strong>Callers:</strong> `BqDtQuery.gs` (`getDataFromSKU`), `SheetCoreAutomations.gs` (`recalculateAllRows`, `handleSheetAutomations`).</li>
+            </ul>
+        </div>
+
+        <h3 id="uxcontrol-gs">10. <code>UxControl.gs</code></h3>
+        <p>This file contains functions related to User Experience (UX) controls within the Google Sheet, primarily focusing on conditional formatting for clarity.</p>
+        <div class="file-section">
+            <h4 class="mb-2"><code>applyConditionalFormatting()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Applies background colors, font colors, bolding, italics, and strikethrough to entire rows based on the status in the 'Status' column. This function clears all existing rules for the data range before applying new ones to prevent duplication and ensure consistency. Rules are applied to the entire data row to visually indicate status at a glance.</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Gets active sheet and data range from `CONFIG.approvalWorkflow.startDataRow` to `sheet.getMaxRows()`. Clears all existing conditional format rules. Iterates through `CONFIG.conditionalFormatColors` and `CONFIG.approvalWorkflow.statusStrings`. For each status, builds a conditional format rule using `whenFormulaSatisfied` (e.g., `=$T6="Draft"` for row 6 and status column T). Applies styling properties and sets all rules in one call.</li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `CONFIG`.</li>
+                <li><strong>Callers:</strong> `Main.gs` (`onOpen`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>applyColumnHighlighting()</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Applies conditional formatting to specific columns to highlight where user input is expected based on the row's status, guiding AE or Approver actions. This works in conjunction with `applyConditionalFormatting` (row coloring).</li>
+                <li><strong>Inputs:</strong> N/A.</li>
+                <li><strong>Outputs:</strong> N/A.</li>
+                <li><strong>Key Logic:</strong> Gets active sheet and data range. Retrieves existing conditional format rules (from `applyConditionalFormatting`). Identifies AE input columns and Approver input columns from `CONFIG.approvalWorkflow.columns`. Creates rules to highlight AE input columns when row status is 'Draft' or 'Revision Requested'. Creates rules to highlight Approver input columns when row status is 'Pending Approval' or 'Revised by AE'. Adds these new rules to the existing rules and applies the combined set.</li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `CONFIG`, `getColumnIndexByLetter` (from `config.gs`).</li>
+                <li><strong>Callers:</strong> `Main.gs` (`onOpen`).</li>
+            </ul>
+        </div>
+
+        <h3 id="testing-files">11. Testing Files (`.gs`)</h3>
+        <p>A dedicated suite of files for robust automated testing, ensuring code reliability and preventing regressions.</p>
+        <div class="file-section">
+            <h4 class="mb-2"><code>TestUtilities.gs</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Provides a robust framework for creating isolated test environments.</li>
+                <li><strong>Key Functions:</strong>
+                    <ul>
+                        <li><strong><code>withTestSheet(...)</code>:</strong> A higher-order function that automates the creation, execution, and guaranteed cleanup of temporary test sheets.</li>
+                        <li><span class="new-feature-highlight"><strong><code>withTestConfig(...)</code>:</strong> A new higher-order function that temporarily overrides `CONFIG` values for a test's duration and guarantees they are restored, making tests independent of the global configuration.</span></li>
+                    </ul>
+                </li>
+                <li><strong>Dependencies:</strong> `SpreadsheetApp`, `Utilities`, `CONFIG`.</li>
+                <li><strong>Callers:</strong> All integration test files (`...Tests.gs`).</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>Tests.gs</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> The central test runner that orchestrates the entire test suite and provides summary reports.</li>
+                <li><strong>Key Functions:</strong> `runAllTests`, `runUnitTests`, `runIntegrationTests`, `_addTestMenus`, and various assertion helpers (`_assertEqual`, etc.).</li>
+                <li><strong>Dependencies:</strong> All `...Tests.gs` files, `Logger.gs`.</li>
+                <li><strong>Callers:</strong> `Main.gs` (via UI menu), or directly from the Apps Script editor.</li>
+            </ul>
+        </div>
+        <!-- UPDATED SECTION -->
+        <div class="file-section">
+            <h4 class="mb-2"><code>SheetCoreAutomationsTests.gs</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Contains the unit and integration test suite for functions in `SheetCoreAutomations.gs`.</li>
+                <li><strong>Key Functions & Status:</strong>
+                    <ul>
+                        <li><strong>Unit Tests:</strong> `test_getNumericValue`, `test_updateCalculationsForRow`. <span class="status-passed">Complete & Passing.</span></li>
+                        <li><strong>Integration Tests:</strong> `test_handleSheetAutomations_AEDiscovery_Integration`, `test_handleSheetAutomations_Approval_Integration`, `test_recalculateAllRows_Integration`. <span class="status-passed">Complete & Passing.</span></li>
+                        <li><span class="new-feature-highlight">This suite now provides 100% test coverage for its target module, verifying status transitions, LRF/Contract Value calculations, auto-indexing, and revision logic under various scenarios.</span></li>
+                    </ul>
+                </li>
+                <li><strong>Dependencies:</strong> `TestUtilities.gs`, mock data files, and core application files.</li>
+                <li><strong>Callers:</strong> `Tests.gs`.</li>
+            </ul>
+        </div>
+        <!-- UPDATED SECTION -->
+        <div class="file-section">
+            <h4 class="mb-2"><code>ApprovalWorkflowTests.gs</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Contains the unit and integration test suite for functions in `ApprovalWorkflow.gs`.</li>
+                 <li><strong>Key Functions & Status:</strong>
+                    <ul>
+                        <li><strong><code>runApprovalWorkflow_UnitTests()</code>:</strong> <span class="status-passed">Complete & Passing.</span> A comprehensive suite covering all logical paths of the `handleApprovalEdit` function.</li>
+                        <li><strong><code>runApprovalWorkflow_IntegrationTests()</code>:</strong> <span class="status-passed">Complete & Passing.</span> A comprehensive suite covering the `processAllApproverActions` function, including bulk processing happy paths and all validation/error-handling branches.</li>
+                        <li><span class="new-feature-highlight">This suite now provides 100% test coverage for its target module.</span></li>
+                    </ul>
+                </li>
+                <li><strong>Dependencies:</strong> `TestUtilities.gs`, mock data files, and core application files.</li>
+                <li><strong>Callers:</strong> `Tests.gs`.</li>
+            </ul>
+        </div>
+        <div class="file-section">
+            <h4 class="mb-2"><code>UnitTestMockData.gs</code> & <code>IntegrationTestMockData.gs</code></h4>
+            <ul>
+                <li><strong>Purpose:</strong> Centralized storage for mock data, enhancing test readability, maintainability, and reusability.</li>
+                <li><strong>Key Aspects:</strong>
+                    <ul>
+                        <li><strong><code>MOCK_DATA_UNIT</code>:</strong> Contains mock data tailored for isolated unit tests (e.g., in-memory row arrays).</li>
+                        <li><strong><code>MOCK_DATA_INTEGRATION</code>:</strong> Contains mock data for integration tests (e.g., CSV strings used by `withTestSheet` to populate live test sheets).</li>
+                    </ul>
+                </li>
+                <li><strong>Interactions:</strong> Imported and used by all `...Tests.gs` files.</li>
+            </ul>
+        </div>
+
+    </div>
+</body>
+</html>

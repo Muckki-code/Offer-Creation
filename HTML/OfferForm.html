@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+      body { padding: 20px; }
+      .form-group { margin-bottom: 15px; }
+      #initial-data { display: none; } 
+      .input-error { border-color: #dc3545 !important; }
+      .error-message { display: none; width: 100%; margin-top: .25rem; font-size: .875em; color: #dc3545; }
+      #form-summary-error { text-align: right; margin-bottom: 10px; }
+    </style>
+  </head>
+  <body>
+    <div id="initial-data" data-form-defaults="<?!= encodeURIComponent(JSON.stringify(formDataDefaults)) ?>"></div>
+
+    <div class="container">
+      <h4 id="form-title">Offer Details</h4>
+      <form id="offerDetailsForm" novalidate> 
+
+        <div class="form-group">
+          <label for="customDocName" id="label-customDocName">Document Name (Optional):</label>
+          <input type="text" class="form-control" id="customDocName" name="customDocName">
+        </div>
+
+        <div class="form-group">
+          <label for="docLanguage" id="label-docLanguage">Document Language:</label>
+          <select class="form-control" id="docLanguage" name="docLanguage">
+            <option value="german">German</option>
+            <option value="english">English</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="offerType" id="label-offerType">Offer Type:</label>
+          <select class="form-control" id="offerType" name="offerType">
+            <option value="">-- Select Offer Type --</option> 
+            <option value="binding">Binding Offer</option>
+            <option value="non-binding">Non-binding Offer</option>
+          </select>
+          <div class="error-message" id="error-offerType"></div>
+        </div>
+        <hr>
+
+        <div class="form-group">
+          <label for="offerCreatedDate" id="label-offerCreatedDate">Offer Created Date:</label>
+          <input type="date" class="form-control" id="offerCreatedDate" name="offerCreatedDate">
+          <div class="error-message" id="error-offerCreatedDate"></div>
+        </div>
+
+        <div class="form-group" id="group-offerValidUntilDate">
+          <label for="offerValidUntilDate" id="label-offerValidUntilDate">Offer Valid Until Date:</label>
+          <input type="date" class="form-control" id="offerValidUntilDate" name="offerValidUntilDate">
+          <div class="error-message" id="error-offerValidUntilDate"></div>
+        </div>
+
+        <hr>
+        <div class="form-group">
+          <label for="customerContactName" id="label-customerContactName">Customer Contact Name:</label>
+          <input type="text" class="form-control" id="customerContactName" name="customerContactName">
+          <div class="error-message" id="error-customerContactName"></div>
+        </div>
+        <div class="form-group">
+          <label for="customerCompanyAddress" id="label-customerCompanyAddress">Customer Company Address:</label>
+          <textarea class="form-control" id="customerCompanyAddress" name="customerCompanyAddress" rows="3"></textarea>
+          <div class="error-message" id="error-customerCompanyAddress"></div>
+        </div>
+        <hr>
+        <div class="form-group">
+          <label for="everphoneContactFullName" id="label-everphoneContactFullName">Your Full Name (Everphone Contact):</label>
+          <input type="text" class="form-control" id="everphoneContactFullName" name="everphoneContactFullName">
+          <div class="error-message" id="error-everphoneContactFullName"></div>
+        </div>
+        <div class="form-group">
+          <label for="everphoneContactPosition" id="label-everphoneContactPosition">Your Position (Everphone Contact):</label>
+          <input type="text" class="form-control" id="everphoneContactPosition" name="everphoneContactPosition">
+          <div class="error-message" id="error-everphoneContactPosition"></div>
+        </div>
+        <div class="form-group">
+          <label for="everphoneContactEmail" id="label-everphoneContactEmail">Your Email (Everphone Contact):</label>
+          <input type="email" class="form-control" id="everphoneContactEmail" name="everphoneContactEmail">
+          <div class="error-message" id="error-everphoneContactEmail"></div>
+        </div>
+        <hr>
+        <div class="form-group">
+          <label for="overallContractTermOptions" id="label-overallContractTermOptions">Overall Contract Term Options:</label>
+          <input type="text" class="form-control" id="overallContractTermOptions" name="overallContractTermOptions">
+          <div class="error-message" id="error-overallContractTermOptions"></div>
+        </div>
+        <div class="form-group">
+          <label for="specialAgreementText" id="label-specialAgreementText">Special Agreement Text (Optional):</label>
+          <textarea class="form-control" id="specialAgreementText" name="specialAgreementText" rows="4"></textarea>
+        </div>
+        <div class="form-group">
+            <div class="error-message" id="form-summary-error"></div>
+        </div>
+        <div class="form-group text-right">
+          <button type="button" class="btn btn-secondary mr-2" onclick="google.script.host.close()" id="cancelButton">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="generateButton">Generate Document</button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      const translations = {
+        "english": {
+          "formTitle": "Offer Details", "customDocNameLabel": "Document Name (Optional):", "docLanguageLabel": "Document Language:",
+          "offerTypeLabel": "Offer Type:", "selectOfferTypePrompt": "-- Select Offer Type --", 
+          "bindingOfferText": "Binding Offer", "nonBindingOfferText": "Non-binding Offer",
+          "offerCreatedDateLabel": "Offer Created Date:", "offerValidUntilDateLabel": "Offer Valid Until Date:",
+          "customerContactNameLabel": "Customer Contact Name:", "customerCompanyAddressLabel": "Customer Company Address:",
+          "everphoneContactFullNameLabel": "Your Full Name (Everphone Contact):", "everphoneContactPositionLabel": "Your Position (Everphone Contact):",
+          "everphoneContactEmailLabel": "Your Email (Everphone Contact):", "overallContractTermOptionsLabel": "Overall Contract Term Options:",
+          "specialAgreementTextLabel": "Special Agreement Text (Optional):", "cancelButtonText": "Cancel",
+          "generateButtonText": "Generate Document", "generatingButtonText": "Generating...",
+          "pleaseFill": "Please fill", "pleaseSelect": "Please select", 
+          "summaryErrorText": "Please correct the highlighted errors above."
+        },
+        "german": {
+          "formTitle": "Angebotsdetails", "customDocNameLabel": "Dokumentenname (Optional):", "docLanguageLabel": "Dokumentsprache:",
+          "offerTypeLabel": "Angebotsart:", "selectOfferTypePrompt": "-- Angebotsart wählen --", 
+          "bindingOfferText": "Verbindliches Angebot", "nonBindingOfferText": "Unverbindliches Angebot",
+          "offerCreatedDateLabel": "Angebot erstellt am:", "offerValidUntilDateLabel": "Angebot gültig bis:",
+          "customerContactNameLabel": "Kundenansprechpartner:", "customerCompanyAddressLabel": "Firmenadresse Kunde:",
+          "everphoneContactFullNameLabel": "Ihr vollständiger Name (Everphone Kontakt):", "everphoneContactPositionLabel": "Ihre Position (Everphone Kontakt):",
+          "everphoneContactEmailLabel": "Ihre E-Mail (Everphone Kontakt):", "overallContractTermOptionsLabel": "Vertragslaufzeit Optionen (gesamt):",
+          "specialAgreementTextLabel": "Sondervereinbarungen (Optional):", "cancelButtonText": "Abbrechen",
+          "generateButtonText": "Dokument erstellen", "generatingButtonText": "Wird erstellt...",
+          "pleaseFill": "Bitte füllen Sie", "pleaseSelect": "Bitte wählen Sie", 
+          "summaryErrorText": "Bitte korrigieren Sie die oben hervorgehobenen Fehler."
+        }
+      };
+
+      // --- Global Helper Functions ---
+      function updateFormLanguage(lang) {
+        const currentTranslations = translations[lang] || translations["german"]; 
+        
+        const titleElement = document.getElementById('form-title');
+        if (titleElement && currentTranslations.formTitle) { titleElement.textContent = currentTranslations.formTitle; }
+
+        document.getElementById('label-customDocName').textContent = currentTranslations.customDocNameLabel;
+        document.getElementById('label-docLanguage').textContent = currentTranslations.docLanguageLabel;
+        document.getElementById('label-offerType').textContent = currentTranslations.offerTypeLabel; 
+        
+        const offerTypeSelect = document.getElementById('offerType');
+        const selectPromptOption = offerTypeSelect.querySelector('option[value=""]');
+        if (selectPromptOption && currentTranslations.selectOfferTypePrompt) { 
+            selectPromptOption.textContent = currentTranslations.selectOfferTypePrompt;
+        }
+        const bindingOption = offerTypeSelect.querySelector('option[value="binding"]');
+        if (bindingOption && currentTranslations.bindingOfferText) {
+            bindingOption.textContent = currentTranslations.bindingOfferText;
+        }
+        const nonBindingOption = offerTypeSelect.querySelector('option[value="non-binding"]');
+        if (nonBindingOption && currentTranslations.nonBindingOfferText) {
+            nonBindingOption.textContent = currentTranslations.nonBindingOfferText;
+        }
+
+        document.getElementById('label-offerCreatedDate').textContent = currentTranslations.offerCreatedDateLabel;
+        document.getElementById('label-offerValidUntilDate').textContent = currentTranslations.offerValidUntilDateLabel;
+        document.getElementById('label-customerContactName').textContent = currentTranslations.customerContactNameLabel;
+        document.getElementById('label-customerCompanyAddress').textContent = currentTranslations.customerCompanyAddressLabel;
+        document.getElementById('label-everphoneContactFullName').textContent = currentTranslations.everphoneContactFullNameLabel;
+        document.getElementById('label-everphoneContactPosition').textContent = currentTranslations.everphoneContactPositionLabel;
+        document.getElementById('label-everphoneContactEmail').textContent = currentTranslations.everphoneContactEmailLabel;
+        document.getElementById('label-overallContractTermOptions').textContent = currentTranslations.overallContractTermOptionsLabel;
+        document.getElementById('label-specialAgreementText').textContent = currentTranslations.specialAgreementTextLabel;
+        
+        document.getElementById('cancelButton').textContent = currentTranslations.cancelButtonText;
+        const generateBtn = document.getElementById('generateButton');
+        if (!generateBtn.disabled) { 
+            generateBtn.textContent = currentTranslations.generateButtonText;
+        }
+        
+        requiredFieldsConfig.forEach(field => {
+            field.localizedLabel = currentTranslations[field.labelKey] || field.labelKey; 
+        });
+      }
+
+      function toggleValidUntilDateVisibility() {
+            const offerType = document.getElementById('offerType').value;
+            const validUntilGroup = document.getElementById('group-offerValidUntilDate');
+            const validUntilInput = document.getElementById('offerValidUntilDate');
+            const errorValidUntil = document.getElementById('error-offerValidUntilDate');
+            if (offerType === 'non-binding') {
+                validUntilGroup.style.display = 'none'; validUntilInput.value = ''; 
+                if (validUntilInput.classList.contains('input-error')) {
+                    validUntilInput.classList.remove('input-error');
+                    if (errorValidUntil) { errorValidUntil.textContent = ''; errorValidUntil.style.display = 'none'; }
+                }
+            } else { validUntilGroup.style.display = 'block'; }
+        }
+
+      const requiredFieldsConfig = [
+        { id: 'offerType', labelKey: 'offerTypeLabel', isSelect: true }, 
+        { id: 'offerCreatedDate', labelKey: 'offerCreatedDateLabel' },
+        { id: 'customerContactName', labelKey: 'customerContactNameLabel' },
+        { id: 'customerCompanyAddress', labelKey: 'customerCompanyAddressLabel' },
+        { id: 'everphoneContactFullName', labelKey: 'everphoneContactFullNameLabel' },
+        { id: 'everphoneContactPosition', labelKey: 'everphoneContactPositionLabel' },
+        { id: 'everphoneContactEmail', labelKey: 'everphoneContactEmailLabel' },
+        { id: 'overallContractTermOptions', labelKey: 'overallContractTermOptionsLabel' }
+      ];
+      requiredFieldsConfig.forEach(f => f.localizedLabel = translations.english[f.labelKey] || f.labelKey);
+
+
+      function validateForm() {
+        let isValid = true;
+        const currentLang = document.getElementById('docLanguage').value || "german";
+        const currentTrans = translations[currentLang] || translations["german"];
+        const offerType = document.getElementById('offerType').value;
+
+        requiredFieldsConfig.forEach(field => {
+          const inputElement = document.getElementById(field.id);
+          const errorElement = document.getElementById('error-' + field.id);
+          if (inputElement) inputElement.classList.remove('input-error');
+          if (errorElement) { errorElement.textContent = ''; errorElement.style.display = 'none';}
+        });
+        const validUntilInput = document.getElementById('offerValidUntilDate');
+        const errorValidUntil = document.getElementById('error-offerValidUntilDate');
+        if (validUntilInput) validUntilInput.classList.remove('input-error');
+        if (errorValidUntil) { errorValidUntil.textContent = ''; errorValidUntil.style.display = 'none'; }
+        
+        const summaryErrorElement = document.getElementById('form-summary-error');
+        if (summaryErrorElement) { summaryErrorElement.textContent = ''; summaryErrorElement.style.display = 'none';}
+
+        requiredFieldsConfig.forEach(field => {
+          const inputElement = document.getElementById(field.id);
+          const errorElement = document.getElementById('error-' + field.id);
+          const value = inputElement.value.trim(); 
+
+          if (value === '') { 
+            isValid = false;
+            if (inputElement) inputElement.classList.add('input-error');
+            if (errorElement) {
+              const labelText = field.localizedLabel || field.labelKey; 
+              const errorText = field.isSelect ? currentTrans.pleaseSelect : currentTrans.pleaseFill;
+              errorElement.textContent = `${errorText} '${labelText}'`;
+              errorElement.style.display = 'block';
+            }
+          }
+        });
+
+        if (offerType === 'binding') {
+            if (validUntilInput.value.trim() === '') {
+                isValid = false;
+                validUntilInput.classList.add('input-error');
+                if (errorValidUntil) {
+                    const labelText = currentTrans.offerValidUntilDateLabel || 'Offer Valid Until Date';
+                    errorValidUntil.textContent = `${currentTrans.pleaseFill} '${labelText}'`;
+                    errorValidUntil.style.display = 'block';
+                }
+            }
+        }
+        return isValid;
+      }
+      
+      var formDataDefaults = {}; 
+      let initialLoadComplete = false; 
+
+      window.onload = function() {
+        try {
+          var dataElement = document.getElementById('initial-data');
+          if (dataElement && dataElement.getAttribute('data-form-defaults')) { 
+            var rawDataAttribute = dataElement.getAttribute('data-form-defaults');
+            if (rawDataAttribute) { var decodedJsonString = decodeURIComponent(rawDataAttribute); formDataDefaults = JSON.parse(decodedJsonString); }
+          }
+        } catch (e) { console.error("Error parsing initial form data:", e); }
+        
+        let initialLang = "german"; 
+        if (typeof formDataDefaults === 'object' && formDataDefaults !== null && formDataDefaults.sheetDocLanguage) {
+            if (translations[formDataDefaults.sheetDocLanguage]) { 
+                initialLang = formDataDefaults.sheetDocLanguage;
+            }
+        }
+        document.getElementById('docLanguage').value = initialLang; 
+        
+        function setFieldValue(id, value, replaceNewlinesWithSpace) {
+            var element = document.getElementById(id);
+            if (!element) { return; }
+            let processedValue = value;
+            if (typeof value === 'string' && replaceNewlinesWithSpace) { processedValue = value.replace(/\n+/g, ' '); }
+            if (processedValue !== null && processedValue !== undefined && String(processedValue).toLowerCase() !== "null" && String(processedValue).toLowerCase() !== "undefined") {
+                element.value = processedValue;
+            } else { if (element.tagName !== 'SELECT') { element.value = ""; } else if (processedValue === "") { element.value = "";}}
+        }
+
+        if (typeof formDataDefaults === 'object' && formDataDefaults !== null) {
+            setFieldValue('customDocName', formDataDefaults.sheetCustomDocName, true); 
+            setFieldValue('offerType', formDataDefaults.sheetOfferType, false); 
+            setFieldValue('offerCreatedDate', formDataDefaults.defaultCreatedDate, false); 
+            setFieldValue('everphoneContactEmail', formDataDefaults.defaultUserEmail, true); 
+            setFieldValue('offerValidUntilDate', formDataDefaults.sheetOfferValidUntilDate, false); 
+            setFieldValue('customerContactName', formDataDefaults.sheetCustomerContactName, true); 
+            setFieldValue('customerCompanyAddress', formDataDefaults.sheetCustomerCompanyAddress, false); 
+            setFieldValue('everphoneContactFullName', formDataDefaults.sheetEverphoneContactFullName, true); 
+            setFieldValue('everphoneContactPosition', formDataDefaults.sheetEverphoneContactPosition, true); 
+            setFieldValue('overallContractTermOptions', formDataDefaults.sheetOverallContractTermOptions, true); 
+            setFieldValue('specialAgreementText', formDataDefaults.sheetSpecialAgreements, false); 
+        }
+        
+        updateFormLanguage(initialLang); 
+        toggleValidUntilDateVisibility(); 
+        initialLoadComplete = true; 
+      };
+
+      document.getElementById('docLanguage').addEventListener('change', function(event) {
+        updateFormLanguage(event.target.value);
+        if (initialLoadComplete) { validateForm(); }
+      });
+      document.getElementById('offerType').addEventListener('change', function() {
+        toggleValidUntilDateVisibility();
+        if (initialLoadComplete) { validateForm(); }
+      });
+
+      document.getElementById('offerDetailsForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        console.log("Submit button clicked. Form submission process started.");
+
+        const summaryErrorElement = document.getElementById('form-summary-error');
+        const currentLang = document.getElementById('docLanguage').value || "german";
+        const currentTrans = translations[currentLang] || translations["german"];
+
+        console.log("Calling validateForm()...");
+        const isFormValid = validateForm();
+        console.log("validateForm() returned: " + isFormValid);
+
+        if (isFormValid) {
+          console.log("Form is valid. Proceeding to call server.");
+          if (summaryErrorElement) { summaryErrorElement.textContent = ''; summaryErrorElement.style.display = 'none';}
+          const generateBtn = this.querySelector('button[type="submit"]');
+          generateBtn.disabled = true;
+          generateBtn.textContent = currentTrans.generatingButtonText;
+          
+          console.log("Gathering form data...");
+          const formData = {
+            customDocName: document.getElementById('customDocName').value,
+            docLanguage: document.getElementById('docLanguage').value,    
+            offerType: document.getElementById('offerType').value, 
+            offerCreatedDate: document.getElementById('offerCreatedDate').value,
+            offerValidUntilDate: document.getElementById('offerValidUntilDate').value,
+            customerContactName: document.getElementById('customerContactName').value,
+            customerCompanyAddress: document.getElementById('customerCompanyAddress').value,
+            everphoneContactFullName: document.getElementById('everphoneContactFullName').value,
+            everphoneContactPosition: document.getElementById('everphoneContactPosition').value,
+            everphoneContactEmail: document.getElementById('everphoneContactEmail').value,
+            overallContractTermOptions: document.getElementById('overallContractTermOptions').value,
+            specialAgreementText: document.getElementById('specialAgreementText').value
+          };
+          console.log("Form data gathered:", formData);
+
+          console.log("Executing google.script.run.processFormSubmission...");
+          google.script.run
+            .withSuccessHandler(function() { 
+              console.log("SUCCESS: Server function completed. Closing dialog.");
+              google.script.host.close(); 
+            })
+            .withFailureHandler(function(error) {
+              console.error("FAILURE: Server function returned an error.", error);
+              var formEl = document.getElementById('offerDetailsForm');
+              const generateBtnFailure = formEl.querySelector('button[type="submit"]');
+              generateBtnFailure.disabled = false;
+              generateBtnFailure.textContent = currentTrans.generateButtonText; 
+              if (summaryErrorElement) { 
+                summaryErrorElement.textContent = 'Error: ' + error.message;
+                summaryErrorElement.style.display = 'block';
+              } else {
+                alert('Error: ' + error.message); 
+              }
+            })
+            .processFormSubmission(formData); // MODIFIED: Corrected the call
+            console.log("google.script.run call has been made.");
+        } else {
+          console.log("Form validation failed. Displaying summary error.");
+          if (summaryErrorElement) {
+            summaryErrorElement.textContent = currentTrans.summaryErrorText;
+            summaryErrorElement.style.display = 'block';
+          }
+          const generateBtnFailedVal = this.querySelector('button[type="submit"]');
+          generateBtnFailedVal.disabled = false; 
+          generateBtnFailedVal.textContent = currentTrans.generateButtonText;
+        }
+      });
+    </script>
+  </body>
+</html>

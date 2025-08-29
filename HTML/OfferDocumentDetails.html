@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <title>Offer Document Creation Details</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #333; padding: 20px; background-color: #f8f9fa; }
+        .container { max-width: 800px; margin: 20px auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3, h4 { color: #197b78; margin-top: 25px; margin-bottom: 15px; }
+        h1 { font-size: 2.2em; text-align: center; color: #0f4c4c; }
+        h2 { font-size: 1.8em; border-bottom: 2px solid #e2f0ef; padding-bottom: 5px; }
+        h3 { font-size: 1.4em; color: #3b8a8b; }
+        ul { list-style-type: disc; margin-left: 20px; }
+        li strong { color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Offer Document Creation: Details & Possibilities</h1>
+        <p class="lead text-center">The application automates the generation of professional offer documents, ensuring consistency and accuracy. The documents are created based on a pre-defined Google Docs template and populated with data from your Google Sheet, along with additional details provided by the AE.</p>
+        <hr>
+
+        <h3>Content and Structure</h3>
+        <p>The generated offer document typically includes the following sections:</p>
+        <ul>
+            <li><strong>Offer Nature Description:</strong> Clearly states if it's a "binding" or "non-binding" offer.</li>
+            <li><strong>Customer Information:</strong> Customer Company Name, Address, and Contact Person are dynamically inserted from the sheet's header section.</li>
+            <li><strong>Offer Details:</strong> Includes the Offer Creation Date, Offer Valid Until Date, and Overall Contract Term, sourced directly from your sheet's configuration cells.</li>
+            <li><strong>Everphone Contact:</strong> Your name, position, and email (as the AE) are populated, ensuring the customer knows who to reach out to.</li>
+            <li><strong>Special Agreements:</strong> If the "Special Agreements" field in the sheet contains text, a dedicated section titled "Sondervereinbarungen:" (German) or "Special Agreements:" (English) will be added to the document, followed by your custom text. If the field is empty, this section will not appear.</li>
+            <li><strong>Device Table:</strong> This is the core of the offer. Only devices from the sheet with an <strong>"Approved (Original Price)"</strong> or <strong>"Approved (New Price)"</strong> status will be included. The table displays:
+                <ul>
+                    <li><strong>Device Model:</strong> The name of the device.</li>
+                    <li><strong>Quantity:</strong> Number of units.</li>
+                    <li><strong>Term:</strong> Contract term in months.</li>
+                    <li><strong>Net Monthly Rental Price:</strong> The approved monthly price per device.</li>
+                    <li><strong>Total Net Monthly Rental Price:</strong> Calculated as Quantity * Approved Price, showing the total monthly cost for that device line item.</li>
+                    <li><strong>Grand Total:</strong> The sum of all "Total Net Monthly Rental Price" for all approved devices.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>Template Management and Localization</h3>
+        <p>The application uses separate Google Docs templates for English and German offers, allowing for localization. The template used is determined by the "Language" setting in your Google Sheet.</p>
+        <ul>
+            <li><strong>Template IDs:</strong> Defined in <code>config.gs</code> (<code>CONFIG.templates.english</code> and <code>CONFIG.templates.german</code>).</li>
+            <li><strong>Placeholder Replacement:</strong> The system automatically finds and replaces placeholders (e.g., <code>{{CustomerCompanyName}}</code>) in the chosen template with the actual data from your sheet.</li>
+        </ul>
+
+        <h3>Document Possibilities and Benefits</h3>
+        <ul>
+            <li><strong>Automation:</strong> Eliminates manual copy-pasting, reducing errors and saving time.</li>
+            <li><strong>Consistency:</strong> Ensures all offers adhere to a standard format and include all necessary information.</li>
+            <li><strong>Approval Integration:</strong> Directly links document generation to the approval workflow, ensuring only finalized and approved offers are created.</li>
+            <li><strong>Audit Trail:</strong> Every document creation is logged, providing a clear record of when offers were generated and with what data.</li>
+            <li><strong>Customization:</strong> While automated, the content is dynamic, adapting to customer details, selected devices, and special agreements.</li>
+        </ul>
+    </div>
+</body>
+</html>

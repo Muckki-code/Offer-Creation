@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <title>User Guide</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #333; padding: 20px; background-color: #f8f9fa; }
+        .container { max-width: 800px; margin: 20px auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3, h4 { color: #197b78; margin-top: 25px; margin-bottom: 15px; }
+        h1 { font-size: 2.2em; text-align: center; color: #0f4c4c; }
+        h2 { font-size: 1.8em; border-bottom: 2px solid #e2f0ef; padding-bottom: 5px; }
+        h3 { font-size: 1.4em; color: #3b8a8b; }
+        ul { list-style-type: disc; margin-left: 20px; }
+        li strong { color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>User Guide: Navigating the Workflow</h1>
+        <p class="lead text-center">This section provides a user-centric overview of how to interact with the application, focusing on roles (Account Executive and Approver) and key actions within the Google Sheet.</p>
+        <hr>
+
+        <h3>For Account Executives (AEs)</h3>
+        <p>As an AE, your primary interaction is with the main data rows, populating device information and initiating the approval process.</p>
+        <ul>
+            <li><strong>Entering Device Data:</strong> Fill in the details for each device, including SKU (Column A), EP CAPEX (H), TK CAPEX (I), Accessories CAPEX (J), Sales Ask Price (K), Quantity (L), and Term (M).</li>
+            <li><strong>Automatic Indexing:</strong> When you enter a device Model (G) or SKU (A) and the Index (F) column is empty, an index number will automatically be assigned.</li>
+            <li><strong>BigQuery Data Import:</strong> Use the <strong>"Additional Functions" > "Get Data from BigQuery"</strong> menu option to automatically pull data (Device, CAPEX values, Rental Target/Limit) based on SKUs entered in Column A.
+                <ul>
+                    <li><strong>Consequence:</strong> This action will update Columns B, C, D, E, and G. If an SKU is found in BQ, these columns will be populated. If an SKU is not found, or if an SKU was deleted, any existing BQ-derived data in these columns for that row will be cleared. Other rows without SKUs will remain untouched.</li>
+                </ul>
+            </li>
+            <li><strong>Status Updates:</strong>
+                <ul>
+                    <li><strong>"Draft" Status:</strong> A row automatically enters "Draft" status (Column T) when a Model (G) is entered and no other status is present.</li>
+                    <li><strong>Transition to "Pending Approval":</strong> A row automatically transitions from "Draft" to "Pending Approval" once sufficient data (Sales Ask Price, Quantity, Term) is provided.</li>
+                    <li><strong>"Revised by AE" Status:</strong> If you modify key AE input fields (Model, Sales Price, Quantity, Term, EP/TK/Acc Capex) on a row that was previously "Approved" or "Revision Requested", its status will automatically change to "Revised by AE - Pending Re-Approval". This means a new approval is required.</li>
+                </ul>
+            </li>
+            <li><strong>Submitting Items for Approval:</strong> Go to <strong>"Additional Functions" > "AE Actions" > "Submit All Draft/Revised Items"</strong>.
+                <ul>
+                    <li><strong>Action:</strong> This opens a dialog where you can add a personal message to the Approver and confirm/update your name, customer company, and Telekom deal status.</li>
+                    <li><strong>Consequence:</strong> An email notification will be sent to the Approver with a summary of items pending approval and a direct link to the sheet. The status of these items remains unchanged by this action.</li>
+                </ul>
+            </li>
+            <li><strong>Creating Offer Document:</strong> Select <strong>"Additional Functions" > "Create Offer Document"</strong>.
+                <ul>
+                    <li><strong>Action:</strong> This opens a form to confirm document details. Only items with an <strong>"Approved (Original Price)"</strong> or <strong>"Approved (New Price)"</strong> status will be included in the generated document.</li>
+                    <li><strong>Consequence:</strong> A new Google Doc will be created in the same folder as your spreadsheet, populated with the offer details and a table of the approved devices.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>For Approvers</h3>
+        <p>As an Approver, your role involves reviewing and processing pending requests.</p>
+        <ul>
+            <li><strong>Reviewing Pending Items:</strong> Rows with "Pending Approval" or "Revised by AE - Pending Re-Approval" status (Column T) are awaiting your action. Conditional highlighting will guide you.</li>
+            <li><strong>Selecting an Action:</strong> In the "Approver Action" column (Column N), select one of the following from the dropdown:
+                <ul>
+                    <li><strong>"Approve":</strong> To approve the item.</li>
+                    <li><strong>"Reject":</strong> To reject the item (requires a comment in Column P).</li>
+                    <li><strong>"Request Revision":</strong> To request changes from the AE (requires a comment in Column P).</li>
+                </ul>
+            </li>
+            <li><strong>Optional Price Proposal:</strong> You can enter an alternative "Approver Price Proposal" (Column Q). If approved, this price will be used.</li>
+            <li><strong>Entering Comments:</strong> Provide comments in the "Approver Comments" column (Column P) as needed, especially when rejecting or requesting revisions.</li>
+            <li><strong>Processing Single Items (Checkbox):</strong> After selecting an action and adding comments (if required), check the "Process Action" checkbox (Column O) for that specific row.
+                <ul>
+                    <li><strong>Consequence:</strong> The row's status will update instantly (e.g., to "Approved (Original Price)", "Approved (New Price)", "Rejected", or "Revision Requested"). The "Approved By" and "Approval Date" fields (Columns V and W) will be populated. If the status is "Approved", the "Finance Approved Price" (Column U) will be set.</li>
+                    <li><strong>Reverting an Action:</strong> Unchecking the "Process Action" checkbox will revert the row's status to "Pending Approval" and clear approval details, allowing for re-processing.</li>
+                </ul>
+            </li>
+            <li><strong>Processing All Set Actions (Bulk):</strong> Use the <strong>"Additional Functions" > "Approver Actions" > "Process All Set Actions"</strong> menu option.
+                <ul>
+                    <li><strong>Action:</strong> This will process all rows where a valid "Approver Action" is selected and the status is "Pending Approval" or "Revised by AE - Pending Re-Approval".</li>
+                    <li><strong>Consequence:</strong> All valid actions will be processed in a batch, updating statuses, prices, and approval details for multiple rows at once. Any rows with validation errors (e.g., missing comments for Rejection) will be reported in an alert and remain unchanged.</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+</body>
+</html>

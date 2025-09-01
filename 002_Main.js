@@ -4,6 +4,8 @@
  * Shows the main action sidebar in the UI.
  */
 function showActionSidebar() {
+  const sourceFile = "Main_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'showActionSidebar_start' });
   const html = HtmlService.createTemplateFromFile('HTML/ActionSidebar').evaluate().setTitle('Action Sidebar');
   SpreadsheetApp.getUi().showSidebar(html);
 }
@@ -13,6 +15,8 @@ function showActionSidebar() {
  * @param {Object} e The event object.
  */
 function onOpen(e) {
+  const sourceFile = "Main_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'onOpen_start' });
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('Special Functions')
     .addItem('Show Action Sidebar', 'showActionSidebar')
@@ -31,15 +35,22 @@ function onOpen(e) {
  */
 function setupTriggers() {
     const sourceFile = "Main_gs";
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'setupTriggers_start' });
     Log[sourceFile]("[Main.gs - setupTriggers] User initiated trigger setup.");
     // First, delete any existing triggers to avoid duplicates
     const triggers = ScriptApp.getProjectTriggers();
-    triggers.forEach(trigger => {
-        if (trigger.getHandlerFunction() === 'handleEdit' || trigger.getHandlerFunction() === 'handleChange') {
-            ScriptApp.deleteTrigger(trigger);
-            Log[sourceFile]("[Main.gs - setupTriggers] Deleted existing trigger.");
-        }
-    });
+    if (triggers.length > 0) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'setupTriggers_triggersExist' });
+      triggers.forEach(trigger => {
+          if (trigger.getHandlerFunction() === 'handleEdit' || trigger.getHandlerFunction() === 'handleChange') {
+              Log.TestCoverage_gs({ file: sourceFile, coverage: 'setupTriggers_deletingTrigger' });
+              ScriptApp.deleteTrigger(trigger);
+              Log[sourceFile]("[Main.gs - setupTriggers] Deleted existing trigger.");
+          }
+      });
+    } else {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'setupTriggers_noTriggers' });
+    }
 
     // Create the new installable triggers
     ScriptApp.newTrigger('handleEdit')
@@ -63,6 +74,8 @@ function setupTriggers() {
  * @param {Object} e The event object.
  */
 function handleEdit(e) {
+  const sourceFile = "Main_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleEdit_start' });
   handleSheetAutomations(e);
 }
 
@@ -71,13 +84,20 @@ function handleEdit(e) {
  * @param {Object} e The onChange event object.
  */
 function handleChange(e) {
+  const sourceFile = "Main_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleChange_start' });
   if (e.changeType === 'INSERT_ROW' || e.changeType === 'REMOVE_ROW') {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleChange_isRowChange' });
     applyUxRules(false);
+  } else {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleChange_notRowChange' });
   }
 }
 
 // --- Other functions can remain as they are, but onInstall is no longer needed for trigger setup ---
 function onInstall(e) {
+  const sourceFile = "Main_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'onInstall_start' });
   onOpen(e);
   // Log sheet setup can still be useful here
   _getOrCreateLogSheet(CONFIG.logSheets.tableLogs.sheetName, Object.values(CONFIG.logSheets.tableLogs.columns));
@@ -87,8 +107,9 @@ function onInstall(e) {
 }
 
 function runFullSheetRepair() {
+  const sourceFile = "Main_gs";
   ExecutionTimer.start('runFullSheetRepair_total');
-  Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'runFullSheetRepair_start' });
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'runFullSheetRepair_start' });
   const ui = SpreadsheetApp.getUi();
   ui.alert('Starting Sheet Repair', 'This will take a moment. The script will now reset all formatting, validation, check for data inconsistencies, and verify the logging setup.', ui.ButtonSet.OK);
   Log.Main_gs("[Main.gs - runFullSheetRepair] Start: Manual repair triggered.");
@@ -114,7 +135,8 @@ function runFullSheetRepair() {
  * Displays the full Application Overview HTML dialog with tabs.
  */
 function showApplicationOverviewDialog() {
-  Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'showApplicationOverviewDialog_start' });
+  const sourceFile = "Main_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'showApplicationOverviewDialog_start' });
   Log.Main_gs("[Main.gs - showApplicationOverviewDialog] Start: showApplicationOverviewDialog function started.");
   var htmlOutput = HtmlService.createTemplateFromFile('HTML/ApplicationOverview').evaluate()
       .setWidth(900)
@@ -128,7 +150,8 @@ function showApplicationOverviewDialog() {
  * Reads and returns the raw HTML content for the 'Overview' tab.
  */
 function getOverviewContent() {
-  Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'getOverviewContent_start' });
+  const sourceFile = "Main_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'getOverviewContent_start' });
   Log.Main_gs("[Main.gs - getOverviewContent] Start: getOverviewContent function started.");
   const content = `
     <h2 class="mt-4">1. Introduction to the Application</h2>
@@ -143,7 +166,8 @@ function getOverviewContent() {
  * Reads and returns the raw HTML content for the 'User Guide' tab.
  */
 function getUserGuideContent() {
-  Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'getUserGuideContent_start' });
+  const sourceFile = "Main_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'getUserGuideContent_start' });
   Log.Main_gs("[Main.gs - getUserGuideContent] Start: getUserGuideContent function started.");
   const htmlTemplate = HtmlService.createTemplateFromFile('HTML/UserGuide');
   const content = htmlTemplate.evaluate().getContent();
@@ -155,7 +179,8 @@ function getUserGuideContent() {
  * Reads and returns the raw HTML content for the 'Offer Document' tab.
  */
 function getOfferDocumentDetailsContent() {
-  Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'getOfferDocumentDetailsContent_start' });
+  const sourceFile = "Main_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'getOfferDocumentDetailsContent_start' });
   Log.Main_gs("[Main.gs - getOfferDocumentDetailsContent] Start: getOfferDocumentDetailsContent function started.");
   const htmlTemplate = HtmlService.createTemplateFromFile('HTML/OfferDocumentDetails');
   const content = htmlTemplate.evaluate().getContent();
@@ -167,7 +192,8 @@ function getOfferDocumentDetailsContent() {
  * Reads and returns the raw HTML content for the 'Technical Details' tab.
  */
 function getTechnicalDetailsContent() {
-  Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'getTechnicalDetailsContent_start' });
+  const sourceFile = "Main_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'getTechnicalDetailsContent_start' });
   Log.Main_gs("[Main.gs - getTechnicalDetailsContent] Start: getTechnicalDetailsContent function started.");
   const htmlTemplate = HtmlService.createTemplateFromFile('HTML/TechnicalDetails');
   const content = htmlTemplate.evaluate().getContent();
@@ -179,7 +205,8 @@ function getTechnicalDetailsContent() {
  * Reads and returns the raw HTML content for the 'Code Analysis' tab.
  */
 function getCodeAnalysisContent() {
-  Log.TestCoverage_gs({ file: 'Main.gs', coverage: 'getCodeAnalysisContent_start' });
+  const sourceFile = "Main_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'getCodeAnalysisContent_start' });
   Log.Main_gs("[Main.gs - getCodeAnalysisContent] Start: getCodeAnalysisContent function started.");
   const htmlTemplate = HtmlService.createTemplateFromFile('HTML/CodeAnalysis');
   const content = htmlTemplate.evaluate().getContent();

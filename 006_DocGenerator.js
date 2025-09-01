@@ -15,7 +15,7 @@ function createDocument(newFileName, docLanguage) {
     const templateId = docLanguage === "german" ? CONFIG.templates.german : CONFIG.templates.english;
     const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const ssFile = DriveApp.getFileById(activeSpreadsheet.getId());
-    const destinationFolder = ssFile.getParents().hasNext() ? ssFile.getParents().next() : DriveApp.getRootFolder();
+    const destinationFolder = ssFile.getParents().hasNext() ? (Log.TestCoverage_gs({ file: sourceFile, coverage: 'createDocument_folderHasParent' }), ssFile.getParents().next()) : (Log.TestCoverage_gs({ file: sourceFile, coverage: 'createDocument_folderIsRoot' }), DriveApp.getRootFolder());
     
     ExecutionTimer.start('createDocument_deleteExisting');
     const existingFiles = destinationFolder.getFilesByName(newFileName);
@@ -54,8 +54,8 @@ function populateDocContent(docFile, dataPackage) {
   
   ExecutionTimer.start('populateDocContent_replacePlaceholders');
   const offerTypeFromForm = formData.offerType || "binding";
-  let offerValidUntilDisplay = (offerTypeFromForm === "binding") ? formatDateForLocale(formData.offerValidUntilDate, docLanguage) : ((docLanguage === "german") ? "unverbindlich" : "non-binding");
-  let offerNatureDescription = (offerTypeFromForm === "binding") ? ((docLanguage === "german") ? "Ihr verbindliches Angebot" : "Your binding offer") : ((docLanguage === "german") ? "Ihr unverbindliches Angebot" : "Your non-binding offer");
+  let offerValidUntilDisplay = (offerTypeFromForm === "binding") ? (Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDocContent_validityBinding' }), formatDateForLocale(formData.offerValidUntilDate, docLanguage)) : (Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDocContent_validityNonBinding' }), ((docLanguage === "german") ? "unverbindlich" : "non-binding"));
+  let offerNatureDescription = (offerTypeFromForm === "binding") ? (Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDocContent_natureBinding' }), ((docLanguage === "german") ? "Ihr verbindliches Angebot" : "Your binding offer")) : (Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDocContent_natureNonBinding' }), ((docLanguage === "german") ? "Ihr unverbindliches Angebot" : "Your non-binding offer"));
   
   body.replaceText('{{OfferNatureDescription}}', offerNatureDescription);
   body.replaceText('{{CustomerCompanyName}}', dataPackage.customerCompanyName || "");
@@ -76,9 +76,13 @@ function populateDocContent(docFile, dataPackage) {
   if (foundElementSA) {
     Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDocContent_sa_found' });
     let el = foundElementSA.getElement(); let p = el.getParent();
-    while (p && p.getType() !== DocumentApp.ElementType.PARAGRAPH) { el = p; p = el.getParent(); }
+    while (p && p.getType() !== DocumentApp.ElementType.PARAGRAPH) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDocContent_sa_traverseUp' });
+      el = p; p = el.getParent();
+    }
     const ap = (p && p.getType() === DocumentApp.ElementType.PARAGRAPH) ? p : null;
     if (ap) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDocContent_sa_paragraphFound' });
       if (specialAgreementText !== "") {
         Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDocContent_sa_hasText' });
         let h = (docLanguage === "german") ? "Sondervereinbarungen:" : "Special Agreements:";
@@ -154,12 +158,18 @@ function populateDeviceTable(doc, devicesData, grandTotal, language) {
 
   const totalRow = table.getRow(table.getNumRows() - 1);
   if (totalRow) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDeviceTable_totalRowExists' });
     const boldWithBorderStyle = { ...cellBorderStyle, [DocumentApp.Attribute.BOLD]: true };
     const grandTotalStr = formatNumberForLocale(grandTotal, language, true);
     if (totalRow.getNumCells() >= 5) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDeviceTable_totalRowHasEnoughCells' });
       totalRow.getCell(3).clear().setText("Total:").setAttributes(boldWithBorderStyle);
       totalRow.getCell(4).clear().setText(grandTotalStr).setAttributes(boldWithBorderStyle);
+    } else {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDeviceTable_totalRowNotEnoughCells' });
     }
+  } else {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDeviceTable_noTotalRow' });
   }
   Log.TestCoverage_gs({ file: sourceFile, coverage: 'populateDeviceTable_end' });
   ExecutionTimer.end('populateDeviceTable_total');

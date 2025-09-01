@@ -39,6 +39,7 @@ function showSidebarPanel(functionName, data) {
         // Prevent adding a duplicate error for the same bundle
         const isDuplicate = updates.some(u => u.data.bundleNumber === data.bundleNumber);
         if (!isDuplicate) {
+          Log.TestCoverage_gs({ file: sourceFile, coverage: 'showSidebarPanel_notDuplicate' });
           updates.push(uiUpdateInfo);
           SCRIPT_PROPS.setProperty(
               PROP_KEY_UI_UPDATE, 
@@ -72,11 +73,13 @@ function getSidebarUpdate() {
         const prop = SCRIPT_PROPS.getProperty(PROP_KEY_UI_UPDATE);
         
         if (prop) {
+            Log.TestCoverage_gs({ file: sourceFile, coverage: 'getSidebarUpdate_foundUpdate' });
             Log[sourceFile](`[${sourceFile} - getSidebarUpdate] Found an update queue. Deleting property and returning data to client.`);
             SCRIPT_PROPS.deleteProperty(PROP_KEY_UI_UPDATE); // Clear the queue
             return JSON.parse(prop); // Return the entire array of updates
         }
         
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'getSidebarUpdate_noUpdate' });
         return null;
     } catch(e) {
         Log[sourceFile](`[${sourceFile} - getSidebarUpdate] ERROR polling for updates: ${e.message}`);
@@ -84,6 +87,7 @@ function getSidebarUpdate() {
         return null;
     } finally {
       if (lock.hasLock()) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'getSidebarUpdate_releaseLock' });
         lock.releaseLock();
       }
     }

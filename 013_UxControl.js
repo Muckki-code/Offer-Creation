@@ -43,6 +43,7 @@ function applyUxRules(formatIncluded = true) {
   );
 
   if (formatIncluded) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'applyUxRules_formatIncluded' });
     ExecutionTimer.start("applyUxRules_conditionalFormatting");
     Log[sourceFile](
       "[${sourceFile} - applyUxRules] Applying conditional formatting for row colors."
@@ -107,10 +108,13 @@ function applyUxRules(formatIncluded = true) {
     ExecutionTimer.end("applyUxRules_conditionalFormatting");
 
     if (CONFIG.featureFlags.highlightBundlesWithBorders) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'applyUxRules_highlightBundles' });
       Log[sourceFile](
         `[${sourceFile} - applyUxRules] Feature flag for bundle borders is ON. Calling refreshBundleBorders.`
       );
       refreshBundleBorders();
+    } else {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'applyUxRules_noHighlightBundles' });
     }
 
     ExecutionTimer.start("applyUxRules_numberFormatting");
@@ -131,8 +135,10 @@ function applyUxRules(formatIncluded = true) {
       "financeApprovedPrice",
     ];
     currencyCols.forEach((key) => {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'applyUxRules_currencyLoop_iteration' });
       const colIndex = allColIndexes[key];
       if (colIndex) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'applyUxRules_setCurrencyFormat' });
         sheet
           .getRange(startRow, colIndex, numRows)
           .setNumberFormat(formats.currency);
@@ -140,6 +146,7 @@ function applyUxRules(formatIncluded = true) {
     });
     const lrfCol = allColIndexes["lrfPreview"];
     if (lrfCol) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'applyUxRules_setLrfFormat' });
       const lrfOpenEndedRange = sheet.getRange(
         startRow,
         lrfCol,
@@ -176,6 +183,7 @@ function applyUxRules(formatIncluded = true) {
   const approverCellA1 = CONFIG.offerDetailsCells.approverCell;
   const approverList = CONFIG.approvalWorkflow.approverList;
   if (approverCellA1 && approverList && approverList.length > 0) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'applyUxRules_hasApproverList' });
     Log[sourceFile](
       `[${sourceFile} - applyUxRules] Applying approver list validation to cell ${approverCellA1}.`
     );
@@ -214,6 +222,9 @@ function _clearAndApplyBundleBorder(range) {
   // Check if the range starts on the very first data row.
   const isFirstDataRow =
     range.getRow() === CONFIG.approvalWorkflow.startDataRow;
+  if (isFirstDataRow) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: '_clearAndApplyBundleBorder_isFirstDataRow' });
+  }
 
   range.setBorder(
     isFirstDataRow ? false : true, // top: Don't apply a top border if it's the first row
@@ -332,6 +343,7 @@ function refreshBundleBorders() {
   const lastRow = getLastLastRow(sheet);
 
   if (lastRow < startRow) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'refreshBundleBorders_noData' });
     Log[sourceFile](
       `[${sourceFile} - refreshBundleBorders] No data rows found. Exiting.`
     );
@@ -369,6 +381,7 @@ function refreshBundleBorders() {
   );
 
   if (bundleMetadata.length === 0) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'refreshBundleBorders_noMetadata' });
     Log[sourceFile](
       "[refreshBundleBorders] No bundle metadata found. Exiting."
     );
@@ -378,6 +391,7 @@ function refreshBundleBorders() {
 
   const processedRanges = new Set();
   bundleMetadata.forEach((meta) => {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'refreshBundleBorders_loop_iteration' });
     try {
       const bundleInfo = JSON.parse(meta.getValue());
       if (
@@ -386,6 +400,7 @@ function refreshBundleBorders() {
         bundleInfo.endRow &&
         bundleInfo.startRow < bundleInfo.endRow
       ) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'refreshBundleBorders_validBundleInfo' });
         const bundleRange = sheet.getRange(
           bundleInfo.startRow,
           dataBlockStartCol,
@@ -395,14 +410,18 @@ function refreshBundleBorders() {
         const rangeA1 = bundleRange.getA1Notation();
 
         if (!processedRanges.has(rangeA1)) {
+          Log.TestCoverage_gs({ file: sourceFile, coverage: 'refreshBundleBorders_newRange' });
           Log[sourceFile](
             `[${sourceFile} - refreshBundleBorders] CRAZY VERBOSE: Redrawing border for bundle #${bundleInfo.bundleId} on range ${rangeA1}.`
           );
           _clearAndApplyBundleBorder(bundleRange);
           processedRanges.add(rangeA1);
         }
+      } else {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'refreshBundleBorders_invalidBundleInfo' });
       }
     } catch (e) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'refreshBundleBorders_parseError' });
       // Ignore parse errors
     }
   });

@@ -55,6 +55,7 @@ function submitItemsForApproval() {
 
   ExecutionTimer.start('submitItemsForApproval_countItems');
   for (const row of allValues) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'submitItemsForApproval_loop_iteration' });
     const currentStatus = row[statusColIndex - startCol];
     if (statusesToLookFor.includes(currentStatus)) {
       Log.TestCoverage_gs({ file: sourceFile, coverage: 'submitItemsForApproval_itemFound' });
@@ -133,14 +134,17 @@ function _handlePersonalMessageSubmission(personalMessage, aeName, customerCompa
 
   ExecutionTimer.start('handlePersonalMessageSubmission_updateSheet');
   if (aeName !== null && aeName.trim() !== '') {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'handlePersonalMessageSubmission_updateAeName' });
     sheet.getRange(CONFIG.offerDetailsCells.yourName).setValue(aeName.trim());
     Log[sourceFile](`[${sourceFile} - _handlePersonalMessageSubmission] Info: Updated AE Name in sheet to: '${aeName.trim()}'.`);
   }
   if (customerCompany !== null && customerCompany.trim() !== '') {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'handlePersonalMessageSubmission_updateCustomerCompany' });
     sheet.getRange(CONFIG.offerDetailsCells.customerCompany).setValue(customerCompany.trim());
     Log[sourceFile](`[${sourceFile} - _handlePersonalMessageSubmission] Info: Updated Customer Company in sheet to: '${customerCompany.trim()}'.`);
   }
   if (telekomDeal !== null && telekomDeal.trim() !== '') {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'handlePersonalMessageSubmission_updateTelekomDeal' });
     sheet.getRange(CONFIG.offerDetailsCells.telekomDeal).setValue(telekomDeal.trim());
     Log[sourceFile](`[${sourceFile} - _handlePersonalMessageSubmission] Info: Updated Telekom Deal in sheet to: '${telekomDeal.trim()}'.`);
   }
@@ -160,8 +164,10 @@ function _handlePersonalMessageSubmission(personalMessage, aeName, customerCompa
   let itemsToNotify = 0;
   const statusesToLookFor = [ config.statusStrings.pending, config.statusStrings.revisedByAE ];
   for (const row of allValues) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'handlePersonalMessageSubmission_loop_iteration' });
     const currentStatus = row[statusColIndex - startCol];
     if (statusesToLookFor.includes(currentStatus)) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'handlePersonalMessageSubmission_itemFound' });
       itemsToNotify++;
     }
   }

@@ -22,6 +22,7 @@ function _setMetadataForRowRange(sheet, bundleInfo) {
   
   const metadataValue = JSON.stringify(bundleInfo);
   for (let i = bundleInfo.startRow; i <= bundleInfo.endRow; i++) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: '_setMetadataForRowRange_loop_iteration' });
     // FIXED: The range must be the ENTIRE row, specified with A1 notation like "2:2".
     sheet.getRange(i + ":" + i).addDeveloperMetadata(METADATA_KEY_BUNDLE, metadataValue, SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT);
   }
@@ -101,6 +102,7 @@ function scanAndSetAllBundleMetadata() {
 
   // 1. Clear ALL existing bundle metadata from the entire sheet first for a clean slate.
   if (lastRow >= dataStartRow) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_hasDataRows' });
     Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] Clearing all existing bundle metadata from rows ${dataStartRow}-${lastRow}.`);
     
     // --- THIS IS THE FIX ---
@@ -111,9 +113,14 @@ function scanAndSetAllBundleMetadata() {
     const existingBundleMetadata = rangeToClear.createDeveloperMetadataFinder().withKey(METADATA_KEY_BUNDLE).find();
 
     if (existingBundleMetadata && existingBundleMetadata.length > 0) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_foundOldMetadata' });
       Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] Found ${existingBundleMetadata.length} old metadata entries to remove.`);
-      existingBundleMetadata.forEach(meta => meta.remove());
+      existingBundleMetadata.forEach(meta => {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_removeMetadataLoop' });
+        meta.remove();
+      });
     } else {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_noOldMetadata' });
       Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] No old metadata entries found to remove.`);
     }
     ExecutionTimer.end('scanAndSetAllBundleMetadata_clearOldMetadata');
@@ -130,10 +137,13 @@ function scanAndSetAllBundleMetadata() {
   // 3. Group rows by bundle number in memory.
   const bundlesMap = new Map();
   for (let i = 0; i < allData.length; i++) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_groupingLoop' });
     const rowData = allData[i];
     const bundleNum = String(rowData[CONFIG.documentDeviceData.columnIndices.bundleNumber - dataBlockStartCol] || '').trim();
     if (bundleNum) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_hasBundleNum' });
       if (!bundlesMap.has(bundleNum)) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_newBundleInMap' });
         bundlesMap.set(bundleNum, []);
       }
       bundlesMap.get(bundleNum).push({
@@ -146,18 +156,25 @@ function scanAndSetAllBundleMetadata() {
   // 4. Validate each bundle group and set metadata for the valid ones.
   Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] Found ${bundlesMap.size} potential bundles. Validating each...`);
   for (const [bundleNum, rows] of bundlesMap.entries()) {
-    if (rows.length <= 1) continue; // Not a multi-item bundle
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_validationLoop' });
+    if (rows.length <= 1) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_singleItemBundle' });
+      continue; // Not a multi-item bundle
+    }
 
     // A. Check for non-consecutive rows
     rows.sort((a, b) => a.rowIndex - b.rowIndex);
     let isConsecutive = true;
     for (let i = 1; i < rows.length; i++) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_consecutiveCheckLoop' });
       if (rows[i].rowIndex !== rows[i - 1].rowIndex + 1) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_notConsecutive' });
         isConsecutive = false;
         break;
       }
     }
     if (!isConsecutive) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_skipNotConsecutive' });
         Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] Bundle #${bundleNum} is INVALID (non-consecutive). Skipping metadata.`);
         continue;
     }
@@ -169,12 +186,15 @@ function scanAndSetAllBundleMetadata() {
     const expectedQty = rows[0].rowData[qtyColIndex];
     let hasMismatch = false;
     for (let i = 1; i < rows.length; i++) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_mismatchCheckLoop' });
       if (String(rows[i].rowData[termColIndex]) !== String(expectedTerm) || String(rows[i].rowData[qtyColIndex]) !== String(expectedQty)) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_hasMismatch' });
         hasMismatch = true;
         break;
       }
     }
      if (hasMismatch) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_skipMismatch' });
         Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] Bundle #${bundleNum} is INVALID (mismatched term/qty). Skipping metadata.`);
         continue;
      }

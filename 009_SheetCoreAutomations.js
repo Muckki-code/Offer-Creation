@@ -9,24 +9,28 @@ let _staticValuesCache = null;
  * A robust and performant function to convert a potential currency string or number into a clean numeric value.
  */
 function getNumericValue(value) {
+  const sourceFile = "SheetCoreAutomations_gs";
   Log.TestCoverage_gs({
-    file: "SheetCoreAutomations.gs",
+    file: sourceFile,
     coverage: "getNumericValue_start",
   });
   if (typeof value === "number" && !isNaN(value)) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'getNumericValue_isNumber' });
     return value;
   }
   if (typeof value !== "string" || value.trim() === "") {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'getNumericValue_notStringOrEmpty' });
     return 0;
   }
   let numberString = value.replace(/[€$]/g, "").trim();
   numberString = numberString.replace(/,/g, "");
   const validNumericRegex = /^-?\d*\.?\d*$/;
   if (!validNumericRegex.test(numberString)) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'getNumericValue_invalidRegex' });
     return 0;
   }
   const result = parseFloat(numberString);
-  return isNaN(result) ? 0 : result;
+  return isNaN(result) ? (Log.TestCoverage_gs({ file: sourceFile, coverage: 'getNumericValue_isNaN' }), 0) : (Log.TestCoverage_gs({ file: sourceFile, coverage: 'getNumericValue_isNumberResult' }), result);
 }
 
 /**
@@ -35,14 +39,14 @@ function getNumericValue(value) {
  * operation (.getValues()) to significantly reduce API call overhead.
  */
 function _getStaticSheetValues(sheet) {
+  const sourceFile = "SheetCoreAutomations_gs";
   Log.TestCoverage_gs({
-    file: "SheetCoreAutomations.gs",
+    file: sourceFile,
     coverage: "_getStaticSheetValues_start",
   });
-  const sourceFile = "SheetCoreAutomations_gs";
   if (_staticValuesCache) {
     Log.TestCoverage_gs({
-      file: "SheetCoreAutomations.gs",
+      file: sourceFile,
       coverage: "_getStaticSheetValues_fromCache",
     });
     Log[sourceFile](`[_getStaticSheetValues] Returning values from cache.`);
@@ -62,7 +66,7 @@ function _getStaticSheetValues(sheet) {
   const telekomDealValue = staticCellValues[0][3];
 
   const staticValues = {
-    isTelekomDeal: String(telekomDealValue || "").toLowerCase() === "yes",
+    isTelekomDeal: String(telekomDealValue || "").toLowerCase() === "yes" ? (Log.TestCoverage_gs({ file: sourceFile, coverage: '_getStaticSheetValues_isTelekomDeal' }), true) : (Log.TestCoverage_gs({ file: sourceFile, coverage: '_getStaticSheetValues_isNotTelekomDeal' }), false),
     docLanguage: String(languageValue || "german")
       .trim()
       .toLowerCase(),
@@ -83,9 +87,10 @@ function _getStaticSheetValues(sheet) {
  * This version performs a single, efficient read of only the necessary data.
  */
 function getNextAvailableIndex(sheet) {
+  const sourceFile = "SheetCoreAutomations_gs";
   ExecutionTimer.start("getNextAvailableIndex_total");
   Log.TestCoverage_gs({
-    file: "SheetCoreAutomations.gs",
+    file: sourceFile,
     coverage: "getNextAvailableIndex_start",
   });
   const indexColIndex = CONFIG.documentDeviceData.columnIndices.index;
@@ -96,7 +101,7 @@ function getNextAvailableIndex(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow >= startRow) {
     Log.TestCoverage_gs({
-      file: "SheetCoreAutomations.gs",
+      file: sourceFile,
       coverage: "getNextAvailableIndex_hasDataRows",
     });
 
@@ -109,10 +114,15 @@ function getNextAvailableIndex(sheet) {
     // Find the max index from the in-memory array.
     maxIndex = indexValues.reduce((max, row) => {
       const value = parseFloat(row[0]);
-      return !isNaN(value) && value > max ? value : max;
+      const isNewMax = !isNaN(value) && value > max;
+      if (isNewMax) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'getNextAvailableIndex_newMax' });
+      }
+      return isNewMax ? value : max;
     }, 0);
     ExecutionTimer.end("getNextAvailableIndex_loop");
   } else {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'getNextAvailableIndex_noDataRows' });
     ExecutionTimer.end("getNextAvailableIndex_getValues");
   }
 
@@ -133,7 +143,7 @@ function recalculateAllRows(options = {}) {
   const sourceFile = "SheetCoreAutomations_gs";
   ExecutionTimer.start("recalculateAllRows_total");
   Log.TestCoverage_gs({
-    file: "SheetCoreAutomations.gs",
+    file: sourceFile,
     coverage: "recalculateAllRows_start",
   });
   _staticValuesCache = null;
@@ -142,7 +152,7 @@ function recalculateAllRows(options = {}) {
   const lastRow = getLastLastRow(sheet);
   if (lastRow < startRow) {
     Log.TestCoverage_gs({
-      file: "SheetCoreAutomations.gs",
+      file: sourceFile,
       coverage: "recalculateAllRows_noData",
     });
     Log[sourceFile](
@@ -184,7 +194,7 @@ function recalculateAllRows(options = {}) {
   ExecutionTimer.start("recalculateAllRows_mainLoop");
   for (let i = 0; i < numRows; i++) {
     Log.TestCoverage_gs({
-      file: "SheetCoreAutomations.gs",
+      file: sourceFile,
       coverage: "recalculateAllRows_loop_iteration",
     });
     const currentRowNum = startRow + i;
@@ -201,17 +211,18 @@ function recalculateAllRows(options = {}) {
       !inMemoryRowValues[combinedIndexes.index - dataBlockStartCol]
     ) {
       Log.TestCoverage_gs({
-        file: "SheetCoreAutomations.gs",
+        file: sourceFile,
         coverage: "recalculateAllRows_assignIndex",
       });
       if (nextIndex === null) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'recalculateAllRows_calculateNextIndex' });
         const allCurrentIndices = allValuesAfter
           .map((row) =>
             parseFloat(row[combinedIndexes.index - dataBlockStartCol])
           )
           .filter((val) => !isNaN(val));
         const maxCurrentIndex =
-          allCurrentIndices.length > 0 ? Math.max(...allCurrentIndices) : 0;
+          allCurrentIndices.length > 0 ? (Log.TestCoverage_gs({ file: sourceFile, coverage: 'recalculateAllRows_hasIndices' }), Math.max(...allCurrentIndices)) : (Log.TestCoverage_gs({ file: sourceFile, coverage: 'recalculateAllRows_noIndices' }), 0);
         nextIndex = maxCurrentIndex + 1;
       }
       inMemoryRowValues[
@@ -229,7 +240,7 @@ function recalculateAllRows(options = {}) {
       !inMemoryRowValues[combinedIndexes.approverAction - dataBlockStartCol]
     ) {
       Log.TestCoverage_gs({
-        file: "SheetCoreAutomations.gs",
+        file: sourceFile,
         coverage: "recalculateAllRows_assignApproverAction",
       });
       inMemoryRowValues[combinedIndexes.approverAction - dataBlockStartCol] =
@@ -268,9 +279,12 @@ function recalculateAllRows(options = {}) {
     );
 
     if (newStatus !== initialStatus) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'recalculateAllRows_statusChanged' });
       if (newStatus === null) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'recalculateAllRows_statusIsNull' });
         inMemoryRowValues[combinedIndexes.status - dataBlockStartCol] = "";
       } else {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'recalculateAllRows_statusIsNotNull' });
         inMemoryRowValues[
           combinedIndexes.status - dataBlockStartCol
         ] = newStatus;
@@ -281,6 +295,7 @@ function recalculateAllRows(options = {}) {
             statusStrings.revisedByAE,
           ].includes(newStatus)
         ) {
+          Log.TestCoverage_gs({ file: sourceFile, coverage: 'recalculateAllRows_resetApproverAction' });
           inMemoryRowValues[
             combinedIndexes.approverAction - dataBlockStartCol
           ] = "Choose Action";
@@ -294,6 +309,7 @@ function recalculateAllRows(options = {}) {
           approvedStatuses.includes(initialStatus) &&
           !approvedStatuses.includes(newStatus)
         ) {
+          Log.TestCoverage_gs({ file: sourceFile, coverage: 'recalculateAllRows_clearApprovalFields' });
           inMemoryRowValues[
             combinedIndexes.financeApprovedPrice - dataBlockStartCol
           ] = "";
@@ -303,6 +319,8 @@ function recalculateAllRows(options = {}) {
             "";
         }
       }
+    } else {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'recalculateAllRows_statusNotChanged' });
     }
     // --- END FIX ---
   }
@@ -316,7 +334,10 @@ function recalculateAllRows(options = {}) {
 
   // --- THIS IS THE FIX for the BORDER REFRESH ---
   if (options.refreshUx) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'recalculateAllRows_refreshUx' });
     applyUxRules(true);
+  } else {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'recalculateAllRows_noRefreshUx' });
   }
   // --- END FIX ---
 
@@ -335,7 +356,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
   const sourceFile = "SheetCoreAutomations_gs";
   Log.TestCoverage_gs({
     file: sourceFile,
-    coverage: "handleSheetAutomations:entry",
+    coverage: "handleSheetAutomations_entry",
   });
   ExecutionTimer.start("handleSheetAutomations_total");
   Log.TestCoverage_gs({
@@ -349,10 +370,12 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
     range.getRow() < CONFIG.approvalWorkflow.startDataRow &&
     range.getA1Notation() !== CONFIG.offerDetailsCells.telekomDeal
   ) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_editOutsideDataArea' });
     ExecutionTimer.end("handleSheetAutomations_total");
     return;
   }
   if (range.getA1Notation() === CONFIG.offerDetailsCells.telekomDeal) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_telekomDealChanged' });
     Log[sourceFile](
       "[handleSheetAutomations] Telekom Deal cell changed. Triggering full recalculation."
     );
@@ -365,6 +388,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
   try {
     lock.waitLock(30000);
   } catch (err) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_lockTimeout' });
     SpreadsheetApp.getActive().toast(
       "The sheet is busy, please try your edit again in a moment.",
       "Busy",
@@ -440,7 +464,9 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
 
       let wipeBqData = false;
       if (isSingleCellEdit) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_isSingleCellEdit' });
         if (CONFIG.protectedColumnIndices.includes(editedColStart)) {
+          Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_protectedColumn' });
           Log[sourceFile](
             `[handleSheetAutomations] Row ${currentRowNum}: Edit on protected column ${editedColStart}. Reverting.`
           );
@@ -450,6 +476,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
           String(inMemoryRow[c.model - dataBlockStartCol] || "") !==
           String(originalRowForLogic[c.model - dataBlockStartCol] || "");
         if (modelChanged) {
+          Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_modelChanged' });
           Log[sourceFile](
             `[handleSheetAutomations] Row ${currentRowNum}: Model changed. Flagging BQ data for wipe.`
           );
@@ -459,6 +486,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
           String(inMemoryRow[c.sku - dataBlockStartCol] || "") !==
           String(originalRowForLogic[c.sku - dataBlockStartCol] || "");
         if (skuChanged) {
+          Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_skuChanged' });
           Log[sourceFile](
             `[handleSheetAutomations] Row ${currentRowNum}: SKU changed. Flagging BQ data for wipe.`
           );
@@ -466,6 +494,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
         }
       } else {
         // This is a paste
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_isPaste' });
         Log[sourceFile](
           `[handleSheetAutomations] Row ${currentRowNum}: Paste detected. Wiping script-managed fields.`
         );
@@ -490,6 +519,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
           (c.sku >= pasteStartCol && c.sku <= pasteEndCol) !==
           (c.model >= pasteStartCol && c.model <= pasteEndCol)
         ) {
+          Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_pasteDesync' });
           Log[sourceFile](
             `[handleSheetAutomations] Row ${currentRowNum}: Paste desynchronized SKU/Model. Wiping BQ data.`
           );
@@ -497,6 +527,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
         }
       }
       if (wipeBqData) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_wipeBqData' });
         inMemoryRow[c.epCapexRaw - dataBlockStartCol] = "";
         inMemoryRow[c.tkCapexRaw - dataBlockStartCol] = "";
         inMemoryRow[c.rentalTargetRaw - dataBlockStartCol] = "";
@@ -505,7 +536,11 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
 
       const modelName = inMemoryRow[c.model - dataBlockStartCol];
       if (modelName && !inMemoryRow[c.index - dataBlockStartCol]) {
-        if (nextIndex === null) nextIndex = getNextAvailableIndex(sheet);
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_assignIndex' });
+        if (nextIndex === null) {
+          Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_calculateNextIndex' });
+          nextIndex = getNextAvailableIndex(sheet);
+        }
         inMemoryRow[c.index - dataBlockStartCol] = nextIndex++;
         Log[sourceFile](
           `[handleSheetAutomations] Row ${currentRowNum}: Assigned new index ${
@@ -537,6 +572,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
         e.value &&
         e.value !== "Choose Action";
       if (isApprovalAction) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_isApprovalAction' });
         processSingleApprovalAction(
           sheet,
           currentRowNum,
@@ -560,7 +596,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
         if (newStatus !== initialStatus) {
           Log.TestCoverage_gs({
             file: sourceFile,
-            coverage: "handleSheetAutomations:if-statusChanged",
+            coverage: "handleSheetAutomations_statusChanged",
           });
           logTableActivity({
             mainSheet: sheet,
@@ -572,8 +608,10 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
             startCol: dataBlockStartCol,
           });
           if (newStatus === null) {
+            Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_statusIsNull' });
             inMemoryRow[c.status - dataBlockStartCol] = "";
           } else {
+            Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_statusIsNotNull' });
             inMemoryRow[c.status - dataBlockStartCol] = newStatus;
             if (
               [
@@ -582,6 +620,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
                 CONFIG.approvalWorkflow.statusStrings.revisedByAE,
               ].includes(newStatus)
             ) {
+              Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_resetApproverAction' });
               inMemoryRow[c.approverAction - dataBlockStartCol] =
                 "Choose Action";
             }
@@ -594,6 +633,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
               finalizedStatuses.includes(initialStatus) &&
               !finalizedStatuses.includes(newStatus)
             ) {
+              Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_clearApprovalFields' });
               inMemoryRow[c.financeApprovedPrice - dataBlockStartCol] = "";
               inMemoryRow[c.approvedBy - dataBlockStartCol] = "";
               inMemoryRow[c.approvalDate - dataBlockStartCol] = "";
@@ -602,7 +642,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
         } else {
           Log.TestCoverage_gs({
             file: sourceFile,
-            coverage: "handleSheetAutomations:else-statusNotChanged",
+            coverage: "handleSheetAutomations_statusNotChanged",
           });
         }
       }
@@ -625,11 +665,13 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
     // 5. Post-write bundle and UX logic
     const integrityCols = [c.bundleNumber, c.aeQuantity, c.aeTerm];
     if (isSingleCellEdit && integrityCols.includes(editedColStart)) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_bundleIntegrityColumnEdited' });
       Log[sourceFile](
         `[handleSheetAutomations] Bundle integrity column ${editedColStart} was edited. Performing bundle validation.`
       );
       const bundleNumber = String(e.value || e.oldValue || "").trim();
       if (bundleNumber) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_hasBundleNumber' });
         const validationResult = validateBundle(
           sheet,
           editedRowStart,
@@ -639,12 +681,15 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
           `[handleSheetAutomations] Validation result for bundle #${bundleNumber}: isValid=${validationResult.isValid}, errorCode=${validationResult.errorCode}`
         );
         if (!validationResult.isValid) {
+          Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_bundleInvalid' });
           Log[sourceFile](
             `[handleSheetAutomations] Bundle #${bundleNumber} is INVALID. Triggering UI and forcing Draft status.`
           );
           if (validationResult.errorCode === "GAP_DETECTED") {
+            Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_gapDetected' });
             showBundleGapDialog(bundleNumber);
           } else if (validationResult.errorCode === "MISMATCH") {
+            Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_mismatchDetected' });
             const currentValues = {
               term: range.offset(0, c.aeTerm - editedColStart).getValue(),
               quantity: range
@@ -660,6 +705,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
           }
           const bundleRangeInfo = _findBundleRange(sheet, bundleNumber);
           if (bundleRangeInfo.startRow && bundleRangeInfo.endRow) {
+            Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_foundBundleRange' });
             const numBundleRows =
               bundleRangeInfo.endRow - bundleRangeInfo.startRow + 1;
             Log[sourceFile](
@@ -686,6 +732,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
     }
   } finally {
     if (lock.hasLock()) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'handleSheetAutomations_releaseLock' });
       lock.releaseLock();
       Log[sourceFile](`[handleSheetAutomations] Script lock released.`);
     }
@@ -710,7 +757,7 @@ function updateCalculationsForRow(
   const sourceFile = "SheetCoreAutomations_gs";
   ExecutionTimer.start("updateCalculationsForRow_total");
   Log.TestCoverage_gs({
-    file: "SheetCoreAutomations.gs",
+    file: sourceFile,
     coverage: "updateCalculationsForRow_start",
   });
   const statusStrings = approvalWorkflowConfig.statusStrings;
@@ -722,6 +769,7 @@ function updateCalculationsForRow(
   ];
   ExecutionTimer.start("updateCalculationsForRow_getPrice");
   if (approvedStatuses.includes(status)) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateCalculationsForRow_statusIsFinal' });
     rentalPrice = getNumericValue(
       rowValues[colIndexes.financeApprovedPrice - dataBlockStartCol]
     );
@@ -729,13 +777,14 @@ function updateCalculationsForRow(
       `[${sourceFile} - updateCalculationsForRow] CRAZY VERBOSE: Row ${rowNum}: Status is finalized ('${status}'). Using Finance Approved Price: ${rentalPrice}`
     );
   } else {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateCalculationsForRow_statusIsPending' });
     const approverPrice = getNumericValue(
       rowValues[colIndexes.approverPriceProposal - dataBlockStartCol]
     );
     const aeSalesAskPrice = getNumericValue(
       rowValues[colIndexes.aeSalesAskPrice - dataBlockStartCol]
     );
-    rentalPrice = approverPrice > 0 ? approverPrice : aeSalesAskPrice;
+    rentalPrice = approverPrice > 0 ? (Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateCalculationsForRow_useApproverPrice' }), approverPrice) : (Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateCalculationsForRow_useAePrice' }), aeSalesAskPrice);
     Log[sourceFile](
       `[${sourceFile} - updateCalculationsForRow] CRAZY VERBOSE: Row ${rowNum}: Status is pending. Using Approver Price (${approverPrice}) or AE Ask Price (${aeSalesAskPrice}). Final Price: ${rentalPrice}`
     );
@@ -758,19 +807,23 @@ function updateCalculationsForRow(
   const formats = CONFIG.numberFormats;
 
   if (rentalPrice === 0 || chosenCapex <= 0) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateCalculationsForRow_clearLrfAndContractValue' });
     rowValues[colIndexes.lrfPreview - dataBlockStartCol] = "";
     rowValues[colIndexes.contractValuePreview - dataBlockStartCol] = "";
     Log[sourceFile](
       `[${sourceFile} - updateCalculationsForRow] Row ${rowNum}: Clearing LRF and Contract Value due to zero/invalid price or capex.`
     );
   } else {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateCalculationsForRow_calculateLrfAndContractValue' });
     const term = getNumericValue(
       rowValues[colIndexes.aeTerm - dataBlockStartCol]
     );
     if (term > 0) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateCalculationsForRow_calculateLrf' });
       rowValues[colIndexes.lrfPreview - dataBlockStartCol] =
         (rentalPrice * term) / chosenCapex;
     } else {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateCalculationsForRow_clearLrf' });
       rowValues[colIndexes.lrfPreview - dataBlockStartCol] = "";
     }
 
@@ -778,9 +831,11 @@ function updateCalculationsForRow(
       rowValues[colIndexes.aeQuantity - dataBlockStartCol]
     );
     if (term > 0 && quantity > 0) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateCalculationsForRow_calculateContractValue' });
       rowValues[colIndexes.contractValuePreview - dataBlockStartCol] =
         rentalPrice * term * quantity;
     } else {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateCalculationsForRow_clearContractValue' });
       rowValues[colIndexes.contractValuePreview - dataBlockStartCol] = "";
     }
   }

@@ -19,6 +19,7 @@ function applyBundleCorrection(bundleNumber, term, quantity) {
 
     const bundleRange = _findBundleRange(sheet, bundleNumber);
     if (!bundleRange.startRow || !bundleRange.endRow) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'applyBundleCorrection_noBundleRange' });
       throw new Error(`Could not find the range for bundle #${bundleNumber}.`);
     }
 
@@ -66,12 +67,14 @@ function applyBundleCorrection(bundleNumber, term, quantity) {
 function fixBundleGaps(bundleNumber) {
   // This function remains unchanged, it is already correct.
   const sourceFile = "SheetCorrectionService_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'fixBundleGaps_start' });
   Log[sourceFile](
     `[${sourceFile} - fixBundleGaps] Start. Fixing gaps for bundle #${bundleNumber}.`
   );
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(30000)) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'fixBundleGaps_lockTimeout' });
     SpreadsheetApp.getActive().toast(
       "Sheet is busy, please try again.",
       "Error",
@@ -89,18 +92,23 @@ function fixBundleGaps(bundleNumber) {
       .getValues();
     const bundleRows = [];
     bundleColumnValues.forEach((val, i) => {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'fixBundleGaps_findRowsLoop' });
       if (String(val[0]).trim() == String(bundleNumber)) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'fixBundleGaps_bundleMatch' });
         bundleRows.push(dataStartRow + i);
       }
     });
     if (bundleRows.length <= 1) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'fixBundleGaps_singleItemBundle' });
       return;
     }
     const targetStartRow = bundleRows[0] + 1;
     const rowsToMove = bundleRows.slice(1).reverse();
     rowsToMove.forEach((sourceRow, i) => {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'fixBundleGaps_moveRowsLoop' });
       const destinationRow = targetStartRow + (bundleRows.length - 2 - i);
       if (sourceRow !== destinationRow) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'fixBundleGaps_moveRow' });
         sheet.moveRows(
           sheet.getRange(sourceRow + ":" + sourceRow),
           destinationRow
@@ -158,9 +166,12 @@ function _findBundleRange(sheet, bundleNumber) {
   let lastRowFound = null;
 
   bundleColumnValues.forEach((val, i) => {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: '_findBundleRange_loop_iteration' });
     if (String(val[0]).trim() == String(bundleNumber)) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: '_findBundleRange_bundleMatch' });
       const currentRow = dataStartRow + i;
       if (firstRow === null) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: '_findBundleRange_firstRow' });
         firstRow = currentRow;
       }
       lastRowFound = currentRow;
@@ -180,6 +191,7 @@ function _findBundleRange(sheet, bundleNumber) {
  */
 function dissolveBundle(bundleNumber) {
   const sourceFile = "SheetCorrectionService_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'dissolveBundle_start' });
   Log[sourceFile](`[${sourceFile} - dissolveBundle] Start. Dissolving bundle #${bundleNumber}.`);
   
   try {
@@ -187,20 +199,26 @@ function dissolveBundle(bundleNumber) {
     const startRow = CONFIG.approvalWorkflow.startDataRow;
     const lastRow = sheet.getLastRow();
     
-    if (lastRow < startRow) return;
+    if (lastRow < startRow) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'dissolveBundle_noDataRows' });
+      return;
+    }
 
     const bundleNumCol = CONFIG.documentDeviceData.columnIndices.bundleNumber;
     const allBundleColValues = sheet.getRange(startRow, bundleNumCol, lastRow - startRow + 1, 1).getValues();
 
     const rangesToClear = [];
     allBundleColValues.forEach((val, index) => {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'dissolveBundle_loop_iteration' });
       if (String(val[0]).trim() == String(bundleNumber)) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'dissolveBundle_bundleMatch' });
         const row = startRow + index;
         rangesToClear.push(sheet.getRange(row, bundleNumCol).getA1Notation());
       }
     });
 
     if (rangesToClear.length > 0) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'dissolveBundle_rangesToClear' });
       const rangeList = sheet.getRangeList(rangesToClear);
       rangeList.clearContent();
       
@@ -218,6 +236,7 @@ function dissolveBundle(bundleNumber) {
       
       SpreadsheetApp.getActive().toast(`Bundle #${bundleNumber} has been dissolved.`, "Success", 3);
     } else {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'dissolveBundle_noRangesToClear' });
       SpreadsheetApp.getActive().toast(`Could not find any items for bundle #${bundleNumber}.`, "Info", 3);
     }
 

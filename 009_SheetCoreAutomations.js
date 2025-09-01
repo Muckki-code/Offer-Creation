@@ -3,10 +3,7 @@
  * including the main onEdit handler and general row calculations.
  */
 
-// --- SPRINT 2 PERFORMANCE REFACTOR: EXECUTION-SCOPED CACHE ---
 let _staticValuesCache = null;
-
-// The global getColumnIndexByLetter function from Config.gs is used.
 
 /**
  * A robust and performant function to convert a potential currency string or number into a clean numeric value.
@@ -23,7 +20,7 @@ function getNumericValue(value) {
     return 0;
   }
   let numberString = value.replace(/[€$]/g, "").trim();
-  numberString = numberString.replace(/,/g, ""); // Remove all commas.
+  numberString = numberString.replace(/,/g, "");
   const validNumericRegex = /^-?\d*\.?\d*$/;
   if (!validNumericRegex.test(numberString)) {
     return 0;
@@ -31,8 +28,6 @@ function getNumericValue(value) {
   const result = parseFloat(numberString);
   return isNaN(result) ? 0 : result;
 }
-
-// In SheetCoreAutomations.gs
 
 /**
  * SPRINT 2 PERFORMANCE REFACTOR: Caching helper function.
@@ -57,23 +52,14 @@ function _getStaticSheetValues(sheet) {
     `[SheetCoreAutomations_gs - _getStaticSheetValues] Cache empty. Reading static values from sheet.`
   );
   ExecutionTimer.start("_getStaticSheetValues_read");
-
-  // Define a single range that encompasses all the static cells we need.
-  // This reads from I1 to L4.
   const staticCellsRange = sheet.getRange("I1:L4");
   const staticCellValues = staticCellsRange.getValues();
 
   ExecutionTimer.end("_getStaticSheetValues_read");
   ExecutionTimer.start("_getStaticSheetValues_parse");
 
-  // Extract values from the 2D array based on their relative positions.
-  // getRange("I1:L4") means:
-  // I1 is at [0][0], J1 is [0][1], K1 is [0][2], L1 is [0][3]
-  // I2 is at [1][0], J2 is [1][1], K2 is [1][2], L2 is [1][3]
-  // etc.
-
-  const languageValue = staticCellValues[0][0]; // I1
-  const telekomDealValue = staticCellValues[0][3]; // L1
+  const languageValue = staticCellValues[0][0];
+  const telekomDealValue = staticCellValues[0][3];
 
   const staticValues = {
     isTelekomDeal: String(telekomDealValue || "").toLowerCase() === "yes",
@@ -113,7 +99,7 @@ function getNextAvailableIndex(sheet) {
       file: "SheetCoreAutomations.gs",
       coverage: "getNextAvailableIndex_hasDataRows",
     });
-    // Read the entire index column from the data start row to the end in one operation.
+
     const indexValues = sheet
       .getRange(startRow, indexColIndex, lastRow - startRow + 1, 1)
       .getValues();
@@ -137,8 +123,6 @@ function getNextAvailableIndex(sheet) {
   ExecutionTimer.end("getNextAvailableIndex_total");
   return maxIndex + 1;
 }
-
-// In 106_SheetCoreAutomations.js
 
 /**
  * OPTIMIZED: Recalculates all data rows in the active sheet.
@@ -342,7 +326,6 @@ function recalculateAllRows(options = {}) {
   ExecutionTimer.end("recalculateAllRows_total");
 }
 
-
 /**
  * Main onEdit trigger handler.
  * FINAL MERGED VERSION: Restores all critical safety and sanitization logic
@@ -350,6 +333,10 @@ function recalculateAllRows(options = {}) {
  */
 function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
   const sourceFile = "SheetCoreAutomations_gs";
+  Log.TestCoverage_gs({
+    file: sourceFile,
+    coverage: "handleSheetAutomations:entry",
+  });
   ExecutionTimer.start("handleSheetAutomations_total");
   Log.TestCoverage_gs({
     file: sourceFile,
@@ -468,6 +455,15 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
           );
           wipeBqData = true;
         }
+        const skuChanged =
+          String(inMemoryRow[c.sku - dataBlockStartCol] || "") !==
+          String(originalRowForLogic[c.sku - dataBlockStartCol] || "");
+        if (skuChanged) {
+          Log[sourceFile](
+            `[handleSheetAutomations] Row ${currentRowNum}: SKU changed. Flagging BQ data for wipe.`
+          );
+          wipeBqData = true;
+        }
       } else {
         // This is a paste
         Log[sourceFile](
@@ -518,6 +514,10 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
         );
       }
       if (modelName && !inMemoryRow[c.approverAction - dataBlockStartCol]) {
+        Log.TestCoverage_gs({
+          file: sourceFile,
+          coverage: "handleSheetAutomations:if-assignDefaultApproverAction",
+        });
         inMemoryRow[c.approverAction - dataBlockStartCol] = "Choose Action";
       }
 
@@ -558,6 +558,10 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
           c
         );
         if (newStatus !== initialStatus) {
+          Log.TestCoverage_gs({
+            file: sourceFile,
+            coverage: "handleSheetAutomations:if-statusChanged",
+          });
           logTableActivity({
             mainSheet: sheet,
             rowNum: currentRowNum,
@@ -595,6 +599,11 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
               inMemoryRow[c.approvalDate - dataBlockStartCol] = "";
             }
           }
+        } else {
+          Log.TestCoverage_gs({
+            file: sourceFile,
+            coverage: "handleSheetAutomations:else-statusNotChanged",
+          });
         }
       }
     }
@@ -684,8 +693,6 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
   ExecutionTimer.end("handleSheetAutomations_total");
 }
 
-// In SheetCoreAutomations.gs
-
 /**
  * Calculates and updates BOTH the LRF and Contract Value for a specific row's in-memory data,
  * AND applies the correct number format to the corresponding cells.
@@ -695,7 +702,7 @@ function updateCalculationsForRow(
   sheet,
   rowNum,
   rowValues,
-  isTelekomDeal, // Kept for signature compatibility, but no longer used in logic
+  isTelekomDeal,
   colIndexes,
   approvalWorkflowConfig,
   dataBlockStartCol
@@ -779,7 +786,6 @@ function updateCalculationsForRow(
   }
   ExecutionTimer.end("updateCalculationsForRow_calcLrf");
 
-  // --- NEW: Apply Number Formatting Directly ---
   ExecutionTimer.start("updateCalculationsForRow_setFormats");
   lrfCell.setNumberFormat(formats.percentage);
   contractValueCell.setNumberFormat(formats.currency);

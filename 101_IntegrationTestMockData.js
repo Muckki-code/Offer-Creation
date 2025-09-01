@@ -291,11 +291,12 @@ SKU-02,"","","","",2,,"Device B",900,"80","12","24","Choose Action","","90","","
     ],
   ],
 
-  csvForUxControlTests: `SKU,EP CAPEX,Telekom CAPEX,Target,Limit,Index,Bundle Number,Device,AE CAPEX,AE SALES ASK,QUANTITY,TERM,APPROVER_ACTION,APPROVER_COMMENTS,APPROVER_PRICE_PROPOSAL,LRF_PREVIEW,CONTRACT_VALUE,STATUS,FINANCE_APPROVED_PRICE,APPROVED_BY,APPROVAL_DATE
-SKU-DRAFT,,,,,"1",,"Draft Device",1000,100,10,24,"Choose Action","","","","","",Draft
-SKU-PEND,,,,,"2",,"Pending Device",1000,100,10,24,"Choose Action","","","","",Pending Approval
-SKU-APP-O,,,,,"3",,"Approved (O) Device",1000,100,10,24,"Choose Action","","","","",Approved (Original Price)
-,,,,,"4",,"No Status Row",,,,,,,,,,,
+    csvForUxControlTests:
+`SKU,EP CAPEX,Telekom CAPEX,Target,Limit,Index,Bundle Number,Device,AE CAPEX,AE SALES ASK,QUANTITY,TERM,APPROVER_ACTION,APPROVER_COMMENTS,APPROVER_PRICE_PROPOSAL,LRF_PREVIEW,CONTRACT_VALUE,STATUS,FINANCE_APPROVED_PRICE,APPROVED_BY,APPROVAL_DATE
+SKU-DRAFT,,,,,"1",,"Draft Device",,100,10,24,"Choose Action","","","","","",Draft
+SKU-PEND,,,,,"2",,"Pending Device",1000,100,10,24,"Choose Action","","","","","",Pending Approval
+SKU-APP-O,,,,,"3",,"Approved (O) Device",1000,100,10,24,"Choose Action","","","","","",Approved (Original Price)
+,,,,,"4",,"No Status Row",,,,,,,,,,,,
 SKU-REJ,,,,,"5",,"Rejected Device",1000,100,10,24,"Choose Action","","","","",Rejected
 SKU-REV-AE,,,,,"6",,"Revised AE Device",1000,100,10,24,"Choose Action","","","","",Revised by AE
 `,

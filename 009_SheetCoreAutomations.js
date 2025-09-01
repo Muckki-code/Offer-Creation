@@ -138,6 +138,8 @@ function getNextAvailableIndex(sheet) {
   return maxIndex + 1;
 }
 
+// In 106_SheetCoreAutomations.js
+
 /**
  * OPTIMIZED: Recalculates all data rows in the active sheet.
  * This version determines the next available index once from the in-memory array
@@ -340,11 +342,11 @@ function recalculateAllRows(options = {}) {
   ExecutionTimer.end("recalculateAllRows_total");
 }
 
+
 /**
  * Main onEdit trigger handler.
  * FINAL MERGED VERSION: Restores all critical safety and sanitization logic
- * from the robust older version, while using the "surgical write" mechanism to
- * prevent data deletion and correctly handling bundle metadata scanning.
+ * by using a robust pre-read/post-read state management pattern.
  */
 function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
   const sourceFile = "SheetCoreAutomations_gs";
@@ -398,7 +400,7 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
     const dataBlockStartCol = c.sku;
     const numColsInDataBlock = CONFIG.maxDataColumn - dataBlockStartCol + 1;
     Log[sourceFile](
-      `[handleSheetAutomations] START: Edit detected at ${range.getA1Notation()}. isSingleCellEdit=${isSingleCellEdit}`
+      `[handleSheetAutomations] START: Edit at ${range.getA1Notation()}. isSingleCellEdit=${isSingleCellEdit}`
     );
 
     // 1. Capture Pre-Edit State for logical comparisons.
@@ -418,10 +420,9 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
       `[handleSheetAutomations] CRAZY VERBOSE: Captured 'before' state for ${numEditedRows} row(s).`
     );
 
-    // Ensure the user's edit is fully written to the sheet before we read it back.
-    SpreadsheetApp.flush();
+    SpreadsheetApp.flush(); // CRITICAL: Ensure user's edit is committed to the sheet.
 
-    // 2. Capture Post-Edit State. This is the user's true intent and our baseline for processing.
+    // 2. Capture Post-Edit State. This is the user's true intent and our baseline.
     ExecutionTimer.start("handleSheetAutomations_read_after");
     const postEditValues = sheet
       .getRange(
@@ -454,19 +455,16 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
       if (isSingleCellEdit) {
         if (CONFIG.protectedColumnIndices.includes(editedColStart)) {
           Log[sourceFile](
-            `[handleSheetAutomations] Row ${currentRowNum}: Edit was on protected column ${editedColStart}. Reverting value.`
+            `[handleSheetAutomations] Row ${currentRowNum}: Edit on protected column ${editedColStart}. Reverting.`
           );
           inMemoryRow[editedColStart - dataBlockStartCol] = e.oldValue;
         }
-        const skuChanged =
-          String(inMemoryRow[c.sku - dataBlockStartCol] || "") !==
-          String(originalRowForLogic[c.sku - dataBlockStartCol] || "");
         const modelChanged =
           String(inMemoryRow[c.model - dataBlockStartCol] || "") !==
           String(originalRowForLogic[c.model - dataBlockStartCol] || "");
-        if ((skuChanged && !modelChanged) || (modelChanged && !skuChanged)) {
+        if (modelChanged) {
           Log[sourceFile](
-            `[handleSheetAutomations] Row ${currentRowNum}: SKU/Model desynchronized. Flagging BQ data for wipe.`
+            `[handleSheetAutomations] Row ${currentRowNum}: Model changed. Flagging BQ data for wipe.`
           );
           wipeBqData = true;
         }
@@ -497,15 +495,12 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
           (c.model >= pasteStartCol && c.model <= pasteEndCol)
         ) {
           Log[sourceFile](
-            `[handleSheetAutomations] Row ${currentRowNum}: Paste desynchronized SKU and Model. Flagging BQ data for wipe.`
+            `[handleSheetAutomations] Row ${currentRowNum}: Paste desynchronized SKU/Model. Wiping BQ data.`
           );
           wipeBqData = true;
         }
       }
       if (wipeBqData) {
-        Log[sourceFile](
-          `[handleSheetAutomations] Row ${currentRowNum}: Executing BQ data wipe.`
-        );
         inMemoryRow[c.epCapexRaw - dataBlockStartCol] = "";
         inMemoryRow[c.tkCapexRaw - dataBlockStartCol] = "";
         inMemoryRow[c.rentalTargetRaw - dataBlockStartCol] = "";
@@ -524,9 +519,6 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
       }
       if (modelName && !inMemoryRow[c.approverAction - dataBlockStartCol]) {
         inMemoryRow[c.approverAction - dataBlockStartCol] = "Choose Action";
-        Log[sourceFile](
-          `[handleSheetAutomations] Row ${currentRowNum}: Assigned default 'Choose Action'.`
-        );
       }
 
       updateCalculationsForRow(
@@ -545,9 +537,6 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
         e.value &&
         e.value !== "Choose Action";
       if (isApprovalAction) {
-        Log[sourceFile](
-          `[handleSheetAutomations] Row ${currentRowNum}: Approval action detected. Passing to processSingleApprovalAction.`
-        );
         processSingleApprovalAction(
           sheet,
           currentRowNum,
@@ -568,10 +557,6 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
           dataBlockStartCol,
           c
         );
-        Log[sourceFile](
-          `[handleSheetAutomations] Row ${currentRowNum}: Status logic determined new status should be '${newStatus}' (was '${initialStatus}').`
-        );
-
         if (newStatus !== initialStatus) {
           logTableActivity({
             mainSheet: sheet,
@@ -605,9 +590,6 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
               finalizedStatuses.includes(initialStatus) &&
               !finalizedStatuses.includes(newStatus)
             ) {
-              Log[sourceFile](
-                `[handleSheetAutomations] Row ${currentRowNum}: Status reverted from finalized state. Wiping approval fields.`
-              );
               inMemoryRow[c.financeApprovedPrice - dataBlockStartCol] = "";
               inMemoryRow[c.approvedBy - dataBlockStartCol] = "";
               inMemoryRow[c.approvalDate - dataBlockStartCol] = "";

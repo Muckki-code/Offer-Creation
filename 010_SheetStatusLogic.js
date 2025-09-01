@@ -54,6 +54,8 @@ function _isRowDataComplete(rowValues, colIndexes, startCol, isTelekomDeal) {
 // In SheetStatusLogic.gs
 // In SheetStatusLogic.gs
 
+// In 010_SheetStatusLogic.js
+
 /**
  * Analyzes a row's state and determines what its new status should be.
  * REFACTORED: This is now a "pure" function. It is READ-ONLY and does not
@@ -147,7 +149,6 @@ function updateStatusForRow(inMemoryRowValues, originalFullRowValuesFromCaller, 
  
  return newStatus;
 }
-
 
 
 /**

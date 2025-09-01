@@ -41,7 +41,7 @@ var CONFIG = {
     language: "I1",
     offerType: "I2",
     telekomDeal: "L1",
-    approverCell: "L5", // NEW: Cell for the dynamic approver dropdown
+    approverCell: "O5", // NEW: Cell for the dynamic approver dropdown
   },
 
   documentDeviceData: {
@@ -163,9 +163,9 @@ var CONFIG = {
       config_gs: false,
       Logger_gs: false,
       Main_gs: false,
-      SheetCoreAutomations_gs: false,
+      SheetCoreAutomations_gs: true,
       BqDtQuery_gs: false,
-      SheetStatusLogic_gs: false,
+      SheetStatusLogic_gs: true,
       AE_Actions_gs: false,
       ApprovalWorkflow_gs: false,
       DocGenerator_gs: false,
@@ -180,7 +180,7 @@ var CONFIG = {
 
       TestResults_gs: true,
       TestDebug_gs: true,
-      TestCoverage_gs: true,
+      TestCoverage_gs: false,
       ExecutionTime_gs: false,
     },
   },

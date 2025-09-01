@@ -203,3 +203,138 @@ function groupApprovedItems(allDataRows, startCol) {
   ExecutionTimer.end('groupApprovedItems_total');
   return result;
 }
+
+
+/**
+ * --- NEW ---
+ * A lightweight, publicly callable function for the sidebar to check if a previously
+ * detected bundle error has been manually corrected by the user in the sheet.
+ * @param {string|number} bundleNumber The bundle ID to re-validate.
+ * @returns {boolean} True if the bundle is still invalid, false if it is now valid.
+ */
+function isBundleStillInvalid(bundleNumber) {
+    const sourceFile = "BundleService_gs";
+    Log[sourceFile](`[${sourceFile} - isBundleStillInvalid] Start: Re-validating bundle #${bundleNumber} for sidebar.`);
+    
+    // We can re-use the powerful, existing validateBundle function.
+    // We don't need the editedRowNum for this check, so we can pass a placeholder like 0.
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    const validationResult = validateBundle(sheet, 0, bundleNumber);
+
+    // The logic is simple: if the validation result is NOT valid, the bundle is still broken.
+    if (!validationResult.isValid) {
+        Log[sourceFile](`[${sourceFile} - isBundleStillInvalid] Result for bundle #${bundleNumber}: Still Invalid.`);
+        return true;
+    }
+
+    Log[sourceFile](`[${sourceFile} - isBundleStillInvalid] Result for bundle #${bundleNumber}: Now Valid.`);
+    return false;
+}
+
+/**
+ * Scans the entire sheet to find all bundle-related errors, including
+ * mismatched data and non-consecutive rows.
+ * REFACTORED FOR PERFORMANCE: This version reads the entire data block once
+ * and performs all validation in memory to minimize sheet interactions.
+ *
+ * @returns {Array<Object>} An array of error objects. Each object contains
+ *   the bundleNumber and details about the specific error.
+ */
+function findAllBundleErrors() {
+  const sourceFile = "BundleService_gs";
+  ExecutionTimer.start('findAllBundleErrors_total');
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'findAllBundleErrors_start' });
+  Log[sourceFile](`[${sourceFile} - findAllBundleErrors] Start: Beginning full-sheet bundle health check (Optimized).`);
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const dataStartRow = CONFIG.approvalWorkflow.startDataRow;
+  const lastRow = sheet.getLastRow();
+  const allErrors = [];
+
+  if (lastRow < dataStartRow) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'findAllBundleErrors_noData' });
+    ExecutionTimer.end('findAllBundleErrors_total');
+    return allErrors;
+  }
+
+  // 1. Single Bulk Read of the entire data block
+  ExecutionTimer.start('findAllBundleErrors_readSheet');
+  const dataBlockStartCol = CONFIG.documentDeviceData.columnIndices.sku;
+  const numCols = CONFIG.maxDataColumn - dataBlockStartCol + 1;
+  const allData = sheet.getRange(dataStartRow, dataBlockStartCol, lastRow - dataStartRow + 1, numCols).getValues();
+  ExecutionTimer.end('findAllBundleErrors_readSheet');
+
+  // Pre-calculate 0-based array indices from 1-based config indices
+  const c = { ...CONFIG.documentDeviceData.columnIndices, ...CONFIG.approvalWorkflow.columnIndices };
+  const bundleNumColIndex = c.bundleNumber - dataBlockStartCol;
+  const termColIndex = c.aeTerm - dataBlockStartCol;
+  const quantityColIndex = c.aeQuantity - dataBlockStartCol;
+
+  // 2. Group rows by bundle number in memory
+  ExecutionTimer.start('findAllBundleErrors_groupInMemory');
+  const bundlesMap = new Map();
+  for (let i = 0; i < allData.length; i++) {
+    const rowData = allData[i];
+    const bundleNum = String(rowData[bundleNumColIndex] || '').trim();
+    if (bundleNum) {
+      if (!bundlesMap.has(bundleNum)) {
+        bundlesMap.set(bundleNum, []);
+      }
+      bundlesMap.get(bundleNum).push({
+        rowData: rowData,
+        rowIndex: dataStartRow + i // Store original sheet row index
+      });
+    }
+  }
+  ExecutionTimer.end('findAllBundleErrors_groupInMemory');
+  Log[sourceFile](`[${sourceFile} - findAllBundleErrors] Grouped ${bundlesMap.size} unique bundles in memory.`);
+
+  // 3. Validate each bundle group in memory
+  ExecutionTimer.start('findAllBundleErrors_validateInMemory');
+  for (const [bundleNum, rows] of bundlesMap.entries()) {
+    if (rows.length <= 1) continue;
+
+    // A. Check for non-consecutive rows (gaps)
+    rows.sort((a, b) => a.rowIndex - b.rowIndex); // Ensure sorted by original row index
+    let hasGap = false;
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i].rowIndex !== rows[i - 1].rowIndex + 1) {
+        allErrors.push({
+          bundleNumber: bundleNum,
+          errorCode: 'GAP_DETECTED',
+          errorMessage: `Bundle items must be in consecutive rows. A gap was detected for bundle #${bundleNum}.`,
+          expected: null
+        });
+        hasGap = true;
+        break; // Found a gap, no need to check for mismatch
+      }
+    }
+    if (hasGap) continue;
+
+    // B. Check for mismatched Term or Quantity
+    const expectedTerm = rows[0].rowData[termColIndex];
+    const expectedQuantity = rows[0].rowData[quantityColIndex];
+
+    for (let i = 1; i < rows.length; i++) {
+      const currentTerm = rows[i].rowData[termColIndex];
+      const currentQuantity = rows[i].rowData[quantityColIndex];
+      if (String(currentTerm) !== String(expectedTerm) || String(currentQuantity) !== String(expectedQuantity)) {
+        allErrors.push({
+          bundleNumber: bundleNum,
+          errorCode: 'MISMATCH',
+          errorMessage: `All items in bundle #${bundleNum} must have the same Quantity and Term.`,
+          expected: { term: expectedTerm, quantity: expectedQuantity }
+        });
+        break; // Found a mismatch, move to the next bundle
+      }
+    }
+  }
+  ExecutionTimer.end('findAllBundleErrors_validateInMemory');
+
+  Log[sourceFile](`[${sourceFile} - findAllBundleErrors] End: Found a total of ${allErrors.length} bundle errors after in-memory scan.`);
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'findAllBundleErrors_end' });
+  ExecutionTimer.end('findAllBundleErrors_total');
+  
+  return allErrors;
+}
+

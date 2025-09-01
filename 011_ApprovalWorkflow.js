@@ -25,6 +25,24 @@ function processSingleApprovalAction(sheet, rowNum, e, inMemoryRowValues, allCol
         return false;
     }
 
+    const bundleNumber = inMemoryRowValues[allColIndexes.bundleNumber - startCol];
+    if (bundleNumber) {
+        Log[sourceFile](`[${sourceFile} - processSingleApprovalAction] Row ${rowNum} is part of bundle #${bundleNumber}. Performing bundle validation before processing.`);
+        const validationResult = validateBundle(sheet, rowNum, bundleNumber);
+        if (!validationResult.isValid) {
+            Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_bundleInvalid' });
+            Log[sourceFile](`[${sourceFile} - processSingleApprovalAction] BUNDLE VALIDATION FAIL: Bundle #${bundleNumber} is invalid. Reason: ${validationResult.errorMessage}. Reverting action.`);
+            
+            inMemoryRowValues[allColIndexes.approverAction - startCol] = oldApproverAction; 
+            SpreadsheetApp.getActive().toast(`Action blocked for row ${rowNum}. Bundle #${bundleNumber} has an error that must be fixed first.`, "Bundle Invalid", 8);
+            logGeneralActivity({ action: "Approval Action Blocked", details: `Row ${rowNum}: Bundle #${bundleNumber} is invalid.`, sheetName: sheet.getName(), row: rowNum });
+            
+            ExecutionTimer.end('processSingleApprovalAction_total');
+            return false; 
+        }
+        Log[sourceFile](`[${sourceFile} - processSingleApprovalAction] Bundle #${bundleNumber} is valid. Proceeding with action processing.`);
+    }
+
     ExecutionTimer.start('processSingleApprovalAction_validation');
     const currentStatus = inMemoryRowValues[allColIndexes.status - startCol];
     if (currentStatus !== statusStrings.pending && currentStatus !== statusStrings.revisedByAE) {
@@ -103,6 +121,7 @@ function processSingleApprovalAction(sheet, rowNum, e, inMemoryRowValues, allCol
         if (finalPrice !== null) {
             inMemoryRowValues[allColIndexes.financeApprovedPrice - startCol] = finalPrice;
         }
+        // --- THIS IS THE FIX ---
         logTableActivity({ mainSheet: sheet, rowNum: rowNum, oldStatus: currentStatus, newStatus: newStatus, currentFullRowValues: inMemoryRowValues, originalFullRowValues: originalFullRowValues, startCol: startCol });
         Log[sourceFile](`[${sourceFile} - processSingleApprovalAction] Successfully processed row ${rowNum}. New status: '${newStatus}'.`);
         ExecutionTimer.end('processSingleApprovalAction_applyChanges');
@@ -110,6 +129,8 @@ function processSingleApprovalAction(sheet, rowNum, e, inMemoryRowValues, allCol
         return true;
     }
 }
+
+
 
 /**
  * Performs a health check on the sheet to find and fix data inconsistencies.

@@ -203,6 +203,7 @@ function _handlePersonalMessageSubmission(personalMessage, aeName, customerCompa
 
 /**
  * Helper function to send a summary email notification to the approver.
+ * REFACTORED: Now reads the approver's email from the dynamic dropdown cell on the sheet.
  */
 function sendApprovalRequestEmail(summaryData) {
   const sourceFile = "AE_Actions_gs";
@@ -218,19 +219,25 @@ function sendApprovalRequestEmail(summaryData) {
     return;
   }
   
-  const approverEmail = CONFIG.approvalWorkflow.approverEmail;
-  if (!approverEmail) {
+  // --- REFACTORED LOGIC ---
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const approverCellA1 = CONFIG.offerDetailsCells.approverCell;
+  const approverEmail = sheet.getRange(approverCellA1).getValue();
+  Log[sourceFile](`[${sourceFile} - sendApprovalRequestEmail] CRAZY VERBOSE: Reading approver email from cell '${approverCellA1}'. Value found: '${approverEmail}'.`);
+
+  if (!approverEmail || !String(approverEmail).includes('@')) {
     Log.TestCoverage_gs({ file: sourceFile, coverage: 'sendApprovalRequestEmail_noApproverEmail' });
-    Log[sourceFile](`[${sourceFile} - sendApprovalRequestEmail] Condition: No approver email is set in CONFIG. Skipping email.`);
-    logGeneralActivity({ action: "Email Send Failed", details: "No approver email configured.", sheetName: SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getName() });
+    Log[sourceFile](`[${sourceFile} - sendApprovalRequestEmail] VALIDATION FAILED: No valid approver email found in cell ${approverCellA1}. Skipping email.`);
+    SpreadsheetApp.getUi().alert(`Cannot send approval request: Please select a valid approver from the dropdown in cell ${approverCellA1}.`);
+    logGeneralActivity({ action: "Email Send Failed", details: `No valid approver selected in cell ${approverCellA1}.`, sheetName: sheet.getName() });
     ExecutionTimer.end('sendApprovalRequestEmail_total');
     return;
   }
-  Log[sourceFile](`[${sourceFile} - sendApprovalRequestEmail] Info: Approver Email from CONFIG: '${approverEmail}'.`);
+  // --- END REFACTORED LOGIC ---
 
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const subject = `Price Approval Request: ${summaryData.customerCompany} (${summaryData.itemCount} items)`;
-  Log[sourceFile](`[${sourceFile} - sendApprovalRequestEmail] Info: Email Subject: '${subject}'.`);
+  Log[sourceFile](`[${sourceFile} - sendApprovalRequestEmail] Info: Email Subject: '${subject}'. Recipient: '${approverEmail}'`);
 
   ExecutionTimer.start('sendApprovalRequestEmail_renderTemplate');
   const htmlTemplate = HtmlService.createTemplateFromFile('HTML/ApprovalEmail');

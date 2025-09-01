@@ -27,7 +27,7 @@ function runDocGenerator_IntegrationTests() {
  * paying special attention to how a consolidated bundle is rendered.
  */
 function test_documentGeneration_withBundle_Integration() {
-    const testName = "End-to-End Test: Document Generation with a Bundle (Refactored)";
+    const testName = "End-to-End Test: Document Generation with a Bundle (Refactored for Single Capex)";
     let generatedDocId = null;
 
     try {
@@ -85,7 +85,7 @@ function test_documentGeneration_withBundle_Integration() {
                         _assertEqual(row.getCell(2).getText(), "24 Monate", `${testName} - Term cell should be correctly formatted.`);
                         
                         // The final cell (4) shows the total price (unit price * quantity).
-                        // From our mock data, the bundle unit price is 25.50 + 30.00 = 55.50.
+                        // From our updated 21-column mock data, the bundle unit price is 25.50 + 30.00 = 55.50.
                         // Total price = 55.50 * 10 = 555.00
                         const expectedPrice = formatNumberForLocale(555.00, "german", true);
                         _assertEqual(row.getCell(4).getText(), expectedPrice, `${testName} - Total price cell should be correctly formatted for German locale.`);

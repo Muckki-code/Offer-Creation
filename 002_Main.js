@@ -20,7 +20,10 @@ function onOpen(e) {
     .addItem('Setup Triggers (Run Once)', 'setupTriggers')
     .addToUi();
   _addTestMenus(ui);
-  applyUxRules(true);
+  scanAndSetAllBundleMetadata();
+  // --- THIS IS THE FIX for onOpen logic ---
+  recalculateAllRows({ refreshUx: true });
+  // --- END FIX ---
 }
 
 /**

@@ -41,11 +41,14 @@ function runBundleService_IntegrationTests() {
     test_validateBundle_Standalone_Integration();
     test_handleSheetAutomations_BundleValidation_Integration(); // REFACTORED TEST
     test_groupApprovedItems_Integration(); 
+    test_findAllBundleErrors_Integration(); // <-- ADD THIS LINE
 
     _tearDownBundleServiceTests(); // Use our specific teardown
 
     Log.TestResults_gs("--- BundleService Integration Test Suite Finished ---");
 }
+
+
 
 
 // =================================================================
@@ -161,6 +164,52 @@ function test_groupApprovedItems_Integration() {
            if(individual) {
                 _assertEqual(individual.row[CONFIG.documentDeviceData.columnIndices.model - startCol], "Individual Approved A", `${testName} - Individual item should have correct model name.`);
            }
+      });
+    });
+}
+
+/**
+ * --- NEW TEST ---
+ * Integration test to verify that the new findAllBundleErrors function
+ * correctly scans the sheet and returns all existing bundle errors.
+ */
+function test_findAllBundleErrors_Integration() {
+    const testName = "Integration Test: findAllBundleErrors (Proactive Scan)";
+
+    withTestConfig(function() {
+      // This specific CSV from our mock data contains 3 invalid bundles:
+      // - Bundle 404 has a gap.
+      // - Bundle 505 has a quantity mismatch.
+      // - Bundle 606 has a term mismatch.
+      withTestSheet(MOCK_DATA_INTEGRATION.csvForBundleValidationTests, function(sheet) {
+          
+          // --- EXECUTE ---
+          const errors = findAllBundleErrors();
+
+          // --- VERIFY ---
+          _assertNotNull(errors, `${testName} - The function should return an array.`);
+          _assertEqual(errors.length, 3, `${testName} - Should find exactly 3 errors in the mock data.`);
+
+          // Verify the GAP error
+          const gapError = errors.find(e => e.bundleNumber == "404");
+          _assertNotNull(gapError, `${testName} - An error for bundle #404 should be found.`);
+          if (gapError) {
+            _assertEqual(gapError.errorCode, 'GAP_DETECTED', `${testName} - Error code for #404 should be GAP_DETECTED.`);
+          }
+
+          // Verify the QUANTITY mismatch error
+          const quantityError = errors.find(e => e.bundleNumber == "505");
+          _assertNotNull(quantityError, `${testName} - An error for bundle #505 should be found.`);
+          if (quantityError) {
+            _assertEqual(quantityError.errorCode, 'MISMATCH', `${testName} - Error code for #505 should be MISMATCH.`);
+          }
+
+          // Verify the TERM mismatch error
+          const termError = errors.find(e => e.bundleNumber == "606");
+          _assertNotNull(termError, `${testName} - An error for bundle #606 should be found.`);
+          if (termError) {
+            _assertEqual(termError.errorCode, 'MISMATCH', `${testName} - Error code for #606 should be MISMATCH.`);
+          }
       });
     });
 }

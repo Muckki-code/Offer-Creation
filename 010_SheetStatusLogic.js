@@ -6,38 +6,35 @@
 /**
  * Checks if a row contains all the required data for its status to be "Pending Approval".
  * This function is the definitive source for this business rule.
- * REVISED: Now includes a check for the relevant Capex based on the deal type.
+ * REVISED: Now checks for the new single aeCapex column, removing the old conditional logic.
  * @private
  * @param {Array<any>} rowValues The in-memory array of values for the row.
  * @param {Object} colIndexes A map of column names to their 1-based index.
  * @param {number} startCol The 1-based index of the starting column for the rowValues array.
- * @param {boolean} isTelekomDeal Whether the current sheet is marked as a Telekom Deal.
+ * @param {boolean} isTelekomDeal Whether the current sheet is marked as a Telekom Deal (parameter kept for signature compatibility).
  * @returns {boolean} True if all required data is present, false otherwise.
  */
 function _isRowDataComplete(rowValues, colIndexes, startCol, isTelekomDeal) {
  const sourceFile = 'SheetStatusLogic_gs';
  ExecutionTimer.start('_isRowDataComplete_total');
  Log.TestCoverage_gs({ file: 'SheetStatusLogic.gs', coverage: '_isRowDataComplete_start' });
- Log[sourceFile](`[${sourceFile} - _isRowDataComplete] Start. Checking row for completeness. isTelekomDeal=${isTelekomDeal}`);
+ Log[sourceFile](`[${sourceFile} - _isRowDataComplete] Start. Checking row for completeness.`);
 
  const requiredFields = {
   "Model": { index: colIndexes.model, value: rowValues[colIndexes.model - startCol] },
+  "AE Capex": { index: colIndexes.aeCapex, value: getNumericValue(rowValues[colIndexes.aeCapex - startCol]) },
   "Sales Ask Price": { index: colIndexes.aeSalesAskPrice, value: getNumericValue(rowValues[colIndexes.aeSalesAskPrice - startCol]) },
   "Quantity": { index: colIndexes.aeQuantity, value: getNumericValue(rowValues[colIndexes.aeQuantity - startCol]) },
   "Term": { index: colIndexes.aeTerm, value: getNumericValue(rowValues[colIndexes.aeTerm - startCol]) }
  };
 
- // Conditionally add the required Capex field to the check
- if (isTelekomDeal) {
-    requiredFields["Telekom Capex"] = { index: colIndexes.aeTkCapex, value: getNumericValue(rowValues[colIndexes.aeTkCapex - startCol]) };
- } else {
-    requiredFields["EP Capex"] = { index: colIndexes.aeEpCapex, value: getNumericValue(rowValues[colIndexes.aeEpCapex - startCol]) };
- }
-
  ExecutionTimer.start('_isRowDataComplete_loop');
  for (const fieldName in requiredFields) {
   Log.TestCoverage_gs({ file: 'SheetStatusLogic.gs', coverage: '_isRowDataComplete_loop_iteration' });
   const field = requiredFields[fieldName];
+  const fieldValue = (typeof field.value === 'string') ? `"${field.value}"` : field.value;
+  Log[sourceFile](`[${sourceFile} - _isRowDataComplete] CRAZY VERBOSE: Validating field '${fieldName}', Value: ${fieldValue}`);
+  
   if (!field.value || (typeof field.value === 'number' && field.value <= 0)) {
    Log.TestCoverage_gs({ file: 'SheetStatusLogic.gs', coverage: '_isRowDataComplete_fail' });
    Log[sourceFile](`[${sourceFile} - _isRowDataComplete] FAILED: Row is incomplete. Missing or invalid required field: '${fieldName}'. Value: '${field.value}'.`);
@@ -54,7 +51,7 @@ function _isRowDataComplete(rowValues, colIndexes, startCol, isTelekomDeal) {
  return true;
 }
 
-
+// In SheetStatusLogic.gs
 // In SheetStatusLogic.gs
 
 /**
@@ -66,7 +63,7 @@ function _isRowDataComplete(rowValues, colIndexes, startCol, isTelekomDeal) {
  * @param {Array<any>} inMemoryRowValues The current, in-memory array of values for the row.
  * @param {Array<any>} originalFullRowValuesFromCaller The array of values for the row before the edit.
  * @param {boolean} isTelekomDeal Whether the current sheet is marked as a Telekom Deal.
- * @param {Object} options An optional options object. Can contain { forceRevisionOfFinalizedItems: boolean }.
+ * @param {Object} options An optional options object. Can contain { forceRevisionOfFinalizedItems: boolean, brokenBundleIds: Set<string> }.
  * @param {number} startCol The 1-based index of the starting column for the rowValues array.
  * @param {Object} allColIndexes A map of column names to their 1-based index.
  * @returns {string|null} The calculated new status string, or null if the row should be completely cleared.
@@ -84,7 +81,6 @@ function updateStatusForRow(inMemoryRowValues, originalFullRowValuesFromCaller, 
  const originalModel = originalFullRowValuesFromCaller[colIndexes.model - startCol];
  const currentModel = inMemoryRowValues[colIndexes.model - startCol];
  
- // Start with the assumption that the status will not change.
  let newStatus = initialStatus;
  Log[sourceFile](`[${sourceFile} - updateStatusForRow] Analyze Start: initialStatus='${initialStatus}'.`);
 
@@ -126,7 +122,6 @@ function updateStatusForRow(inMemoryRowValues, originalFullRowValuesFromCaller, 
             newStatus = statusStrings.draft;
             Log[sourceFile](`[${sourceFile} - updateStatusForRow] Final State Check: Row is missing required data. Forcing status to '${newStatus}'.`);
         } else if (newStatus !== initialStatus && !finalizedStatuses.includes(initialStatus)) {
-            // This handles a paste/delete that results in a totally blank row. It should have a blank status.
             Log.TestCoverage_gs({ file: 'SheetStatusLogic.gs', coverage: 'updateStatusForRow_final_forceToBlank' });
             Log[sourceFile](`[${sourceFile} - updateStatusForRow] Final State Check: Row has no model. Forcing status to blank.`);
             newStatus = "";
@@ -135,6 +130,18 @@ function updateStatusForRow(inMemoryRowValues, originalFullRowValuesFromCaller, 
  }
  ExecutionTimer.end('updateStatusForRow_finalStateDetermination');
 
+ // --- THIS IS THE FIX for BUG 1 ---
+ // Final override: If this row is part of a known broken bundle, force its status to Draft.
+ if (newStatus !== null && options.brokenBundleIds && options.brokenBundleIds.size > 0) {
+    const bundleNum = String(inMemoryRowValues[colIndexes.bundleNumber - startCol] || '').trim();
+    if (bundleNum && options.brokenBundleIds.has(bundleNum)) {
+      Log.TestCoverage_gs({ file: 'SheetStatusLogic.gs', coverage: 'updateStatusForRow_brokenBundleOverride' });
+      Log[sourceFile](`[${sourceFile} - updateStatusForRow] BROKEN BUNDLE OVERRIDE: Row is part of broken bundle #${bundleNum}. Forcing status to 'Draft'.`);
+      newStatus = statusStrings.draft;
+    }
+ }
+ // --- END FIX ---
+
  Log[sourceFile](`[${sourceFile} - updateStatusForRow] Analyze End. Final calculated status is '${newStatus}'.`);
  ExecutionTimer.end('updateStatusForRow_total');
  
@@ -142,8 +149,10 @@ function updateStatusForRow(inMemoryRowValues, originalFullRowValuesFromCaller, 
 }
 
 
+
 /**
 * Helper to determine if a key data field was edited by an AE.
+* REVISED: Now checks the single aeCapex column.
 * @private
 * @param {Array<any>} currentRow The current in-memory row data.
 * @param {Array<any>} originalRow The original row data.
@@ -155,17 +164,26 @@ function wasKeyFieldEdited(currentRow, originalRow, colIndexes, startCol) {
   const sourceFile = 'SheetStatusLogic_gs';
   ExecutionTimer.start('wasKeyFieldEdited_total');
   Log.TestCoverage_gs({ file: 'SheetStatusLogic.gs', coverage: 'wasKeyFieldEdited_start' });
+  Log[sourceFile](`[${sourceFile} - wasKeyFieldEdited] Start: Comparing current row against original to detect key field edits.`);
 
+  // REFACTORED: Use the single aeCapex column, removing the old separate ones.
   const revisionTriggerCols = [
-    colIndexes.model, colIndexes.aeSalesAskPrice, colIndexes.aeQuantity, colIndexes.aeTerm,
-    colIndexes.aeEpCapex, colIndexes.aeTkCapex
+    colIndexes.model,
+    colIndexes.aeCapex,
+    colIndexes.aeSalesAskPrice,
+    colIndexes.aeQuantity,
+    colIndexes.aeTerm
   ];
 
   ExecutionTimer.start('wasKeyFieldEdited_loop');
   for (const colIndex of revisionTriggerCols) {
-    if (String(currentRow[colIndex - startCol] || "") !== String(originalRow[colIndex - startCol] || "")) {
+    const originalValue = String(originalRow[colIndex - startCol] || "");
+    const currentValue = String(currentRow[colIndex - startCol] || "");
+    Log[sourceFile](`[${sourceFile} - wasKeyFieldEdited] CRAZY VERBOSE: Checking column ${colIndex}. Original: '${originalValue}', Current: '${currentValue}'.`);
+
+    if (currentValue !== originalValue) {
       Log.TestCoverage_gs({ file: 'SheetStatusLogic.gs', coverage: 'wasKeyFieldEdited_fallbackPath_isChanged' });
-      Log[sourceFile](`[${sourceFile} - wasKeyFieldEdited] Result: true (change detected in column ${colIndex}).`);
+      Log[sourceFile](`[${sourceFile} - wasKeyFieldEdited] CHANGE DETECTED: Column index ${colIndex} changed from '${originalValue}' to '${currentValue}'. Returning true.`);
       ExecutionTimer.end('wasKeyFieldEdited_loop');
       ExecutionTimer.end('wasKeyFieldEdited_total');
       return true;

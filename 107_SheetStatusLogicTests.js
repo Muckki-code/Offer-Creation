@@ -61,9 +61,11 @@ function test_updateStatusForRow_draftToPending() {
     const originalRow = _getTestRow('draftIncomplete');
     const inMemoryRow = JSON.parse(JSON.stringify(originalRow));
 
+    // Make the row complete by filling in the missing required fields
     inMemoryRow[colIndexes.aeSalesAskPrice - 1] = 50;
     inMemoryRow[colIndexes.aeTerm - 1] = 24;
-    inMemoryRow[colIndexes.aeEpCapex - 1] = 1000; // Add the required Capex
+    // MODIFIED: Use the new single 'aeCapex' field
+    inMemoryRow[colIndexes.aeCapex - 1] = 1000;
 
     const newStatus = updateStatusForRow(inMemoryRow, originalRow, false, {}, 1, colIndexes);
 

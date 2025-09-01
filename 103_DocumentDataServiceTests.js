@@ -27,7 +27,7 @@ function runDocumentDataService_IntegrationTests() {
  * It uses the refactored 'groupingTestsAsArray' data.
  */
 function test_prepareDocumentData_Integration() {
-    const testName = "Integration Test: prepareDocumentData (Refactored)";
+    const testName = "Integration Test: prepareDocumentData (Refactored for Single Capex)";
 
     withTestConfig(function() {
       withTestSheet(MOCK_DATA_INTEGRATION.groupingTestsAsArray, function(sheet) {
@@ -70,8 +70,8 @@ function test_prepareDocumentData_Integration() {
             _assertEqual(individualItem.netMonthlyRentalPrice, 50.00, `${testName} - Individual item price should be correct.`);
           }
           
-          // Calculation based on updated MOCK_DATA_INTEGRATION.groupingTestsAsArray
-          // Bundle: 55.50 * 10 = 555.00
+          // Calculation based on updated MOCK_DATA_INTEGRATION.groupingTestsAsArray (21-column)
+          // Bundle: (25.50 + 30.00) * 10 = 555.00
           // Individual A: 50.00 * 1 = 50.00
           // Individual B: 100.00 * 2 = 200.00
           // Total = 555 + 50 + 200 = 805.00

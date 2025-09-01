@@ -3,12 +3,136 @@
  * server-side generated UI elements like dialogs and sidebars.
  */
 
+// --- SCRIPT PROPERTIES FOR STAGING UI UPDATES ---
 const SCRIPT_PROPS = PropertiesService.getScriptProperties();
-const PROP_KEY_DIALOG_DATA = 'dialogData';
+const PROP_KEY_UI_UPDATE = 'sidebarUiUpdate';
 
-// =================================================================
-// --- MISMATCH DIALOG FUNCTIONS ---
-// =================================================================
+
+
+
+
+/**
+ * --- NEW / PUBLIC (but only called by other server functions) ---
+ * A helper to stage UI update information in PropertiesService.
+ * REVISED: This now accumulates errors in an array (acting as a queue)
+ * instead of overwriting a single value.
+ * @param {string} functionName The name of the server-side function that generates the HTML for the panel.
+ * @param {Object} data The data payload required by the HTML-generating function.
+ */
+function showSidebarPanel(functionName, data) {
+    const sourceFile = "UiService_gs";
+    Log[sourceFile](`[${sourceFile} - showSidebarPanel] Staging sidebar update. Function: ${functionName}.`);
+    
+    const uiUpdateInfo = {
+        functionName: functionName,
+        data: data,
+        timestamp: new Date().getTime()
+    };
+
+    const lock = LockService.getScriptLock();
+    try {
+        lock.waitLock(10000); 
+
+        const prop = SCRIPT_PROPS.getProperty(PROP_KEY_UI_UPDATE);
+        let updates = prop ? JSON.parse(prop) : [];
+        
+        // Prevent adding a duplicate error for the same bundle
+        const isDuplicate = updates.some(u => u.data.bundleNumber === data.bundleNumber);
+        if (!isDuplicate) {
+          updates.push(uiUpdateInfo);
+          SCRIPT_PROPS.setProperty(
+              PROP_KEY_UI_UPDATE, 
+              JSON.stringify(updates)
+          );
+          Log[sourceFile](`[${sourceFile} - showSidebarPanel] Successfully staged UI update. Queue size is now ${updates.length}.`);
+        } else {
+          Log[sourceFile](`[${sourceFile} - showSidebarPanel] Skipped adding duplicate error for bundle #${data.bundleNumber}.`);
+        }
+    } catch (e) {
+        Log[sourceFile](`[${sourceFile} - showSidebarPanel] ERROR: Could not set sidebar update property. Error: ${e.message}`);
+    } finally {
+        lock.releaseLock();
+    }
+}
+
+
+/**
+ * --- NEW / PUBLIC ---
+ * Called by the client-side sidebar on a timer (polling) to check for pending UI updates.
+ * REVISED: This now retrieves and clears the entire queue of errors.
+ * @returns {Array<Object>|null} The array of UI update info objects, or null if there are no updates.
+ */
+function getSidebarUpdate() {
+    const sourceFile = "UiService_gs";
+    Log[sourceFile](`[${sourceFile} - getSidebarUpdate] Sidebar is polling for updates.`);
+    
+    const lock = LockService.getScriptLock();
+    try {
+        lock.waitLock(5000);
+        const prop = SCRIPT_PROPS.getProperty(PROP_KEY_UI_UPDATE);
+        
+        if (prop) {
+            Log[sourceFile](`[${sourceFile} - getSidebarUpdate] Found an update queue. Deleting property and returning data to client.`);
+            SCRIPT_PROPS.deleteProperty(PROP_KEY_UI_UPDATE); // Clear the queue
+            return JSON.parse(prop); // Return the entire array of updates
+        }
+        
+        return null;
+    } catch(e) {
+        Log[sourceFile](`[${sourceFile} - getSidebarUpdate] ERROR polling for updates: ${e.message}`);
+        SCRIPT_PROPS.deleteProperty(PROP_KEY_UI_UPDATE); // Clear on error to be safe
+        return null;
+    } finally {
+      if (lock.hasLock()) {
+        lock.releaseLock();
+      }
+    }
+}
+
+
+
+/**
+ * Handles the user's confirmation from the mismatch dialog (now sidebar).
+ * @param {string|number} bundleNumber The bundle ID to correct.
+ * @param {string|number} term The correct term to apply.
+ * @param {string|number} quantity The correct quantity to apply.
+ */
+function handleBundleMismatchConfirmation(bundleNumber, term, quantity) {
+    const sourceFile = "UiService_gs";
+    Log[sourceFile](`[${sourceFile} - handleBundleMismatchConfirmation] Start. User confirmed fix for bundle #${bundleNumber}.`);
+    // Correctly calls the global function from 016_SheetCorrectionService.js
+    applyBundleCorrection(bundleNumber, term, quantity);
+    Log[sourceFile](`[${sourceFile} - handleBundleMismatchConfirmation] End.`);
+}
+
+/**
+ * --- REVISED ---
+ * Handles the user choosing to dissolve a broken bundle from the sidebar.
+ * This is called directly from the client-side google.script.run.
+ * @param {string|number} bundleNumber The bundle ID to dissolve.
+ */
+function handleBundleDissolve(bundleNumber) {
+    const sourceFile = "UiService_gs";
+    Log[sourceFile](`[${sourceFile} - handleBundleDissolve] Start. Relaying call to dissolve bundle #${bundleNumber}.`);
+    
+    // This now correctly calls the new, powerful function in 016_SheetCorrectionService.js
+    dissolveBundle(bundleNumber); 
+    
+    Log[sourceFile](`[${sourceFile} - handleBundleDissolve] End.`);
+}
+
+
+/**
+ * Handles the user's confirmation from the gap dialog (now sidebar).
+ * @param {string|number} bundleNumber The bundle ID to fix.
+ */
+function handleBundleGapConfirmation(bundleNumber) {
+    const sourceFile = "UiService_gs";
+    Log[sourceFile](`[${sourceFile} - handleBundleGapConfirmation] Start. User confirmed fix for bundle #${bundleNumber}.`);
+    fixBundleGaps(bundleNumber);
+    Log[sourceFile](`[${sourceFile} - handleBundleGapConfirmation] End.`);
+}
+
 
 /**
  * --- REFACTORED ---
@@ -30,44 +154,12 @@ function showBundleMismatchDialog(rowNum, bundleNumber, currentValues, expectedV
         expectedValues: expectedValues
     };
     
-    _showSidebarPanel('_getMismatchCorrectionHtml', dialogData);
+    // --- THIS IS THE FIX ---
+    // Call the staging function with the NEW PUBLIC name of the HTML generator
+    showSidebarPanel('getMismatchCorrectionHtml', dialogData);
     
     Log[sourceFile](`[${sourceFile} - showBundleMismatchDialog] End. Mismatch correction data has been staged for the sidebar.`);
 }
-
-
-/**
- * Handles the user's confirmation from the mismatch dialog.
- * @param {string|number} bundleNumber The bundle ID to correct.
- * @param {string|number} term The correct term to apply.
- * @param {string|number} quantity The correct quantity to apply.
- */
-function handleBundleMismatchConfirmation(bundleNumber, term, quantity) {
-    const sourceFile = "UiService_gs";
-    Log[sourceFile](`[${sourceFile} - handleBundleMismatchConfirmation] Start. User confirmed fix for bundle #${bundleNumber}.`);
-    // --- UPDATED to call the refactored correction function ---
-    applyBundleCorrection(bundleNumber, term, quantity);
-    Log[sourceFile](`[${sourceFile} - handleBundleMismatchConfirmation] End.`);
-}
-
-/**
- * --- NEW ---
- * Handles the user cancelling the mismatch dialog.
- * @param {number} rowNum The row number of the item to remove from the bundle.
- */
-function handleBundleMismatchCancellation(rowNum) {
-    const sourceFile = "UiService_gs";
-    Log[sourceFile](`[${sourceFile} - handleBundleMismatchCancellation] Start. User cancelled; removing row ${rowNum} from bundle.`);
-    // --- THIS IS THE FIX ---
-    // It should call the function in SheetCorrectionService, not itself.
-    SheetCorrectionService.handleBundleMismatchCancellation(rowNum); 
-    Log[sourceFile](`[${sourceFile} - handleBundleMismatchCancellation] End.`);
-}
-
-
-// =================================================================
-// --- GAP DIALOG FUNCTIONS ---
-// =================================================================
 
 /**
  * --- REFACTORED ---
@@ -83,40 +175,23 @@ function showBundleGapDialog(bundleNumber) {
       bundleNumber: bundleNumber 
     };
 
-    _showSidebarPanel('_getGapCorrectionHtml', dialogData);
+    // --- THIS IS THE FIX ---
+    // Call the staging function with the NEW PUBLIC name of the HTML generator
+    showSidebarPanel('getGapCorrectionHtml', dialogData);
 
     Log[sourceFile](`[${sourceFile} - showBundleGapDialog] End. Gap correction data has been staged for the sidebar.`);
 }
 
-
-/**
- * Handles the user's confirmation from the gap dialog.
- * @param {string|number} bundleNumber The bundle ID to fix.
- */
-function handleBundleGapConfirmation(bundleNumber) {
-    // This function remains unchanged and correct.
-    const sourceFile = "UiService_gs";
-    Log[sourceFile](`[${sourceFile} - handleBundleGapConfirmation] Start. User confirmed fix for bundle #${bundleNumber}.`);
-    fixBundleGaps(bundleNumber);
-    Log[sourceFile](`[${sourceFile} - handleBundleGapConfirmation] End.`);
-}
-
-/**
- * --- NEW / INTERNAL ---
- * Generates the HTML content for the bundle mismatch correction UI.
- * This will be injected into the ActionSidebar.
- * @param {Object} data The data object, same as what was passed to the old dialog.
- * @returns {string} The HTML content as a string.
- */
-function _getMismatchCorrectionHtml(data) {
+function getMismatchCorrectionHtml(data) {
   const sourceFile = "UiService_gs";
-  Log[sourceFile](`[${sourceFile} - _getMismatchCorrectionHtml] Start. Generating mismatch HTML.`);
+  Log[sourceFile](`[${sourceFile} - getMismatchCorrectionHtml] Start. Generating pure mismatch HTML with data attributes.`);
   
   const html = `
-    <div class="p-4 bg-red-50 border-l-4 border-red-500">
+    <div id="mismatch-panel-content" class="p-4 bg-red-50 border-l-4 border-red-500" 
+         data-bundle-number="${data.bundleNumber}" data-row-num="${data.rowNum}">
         <h2 class="text-lg font-bold text-red-800 mb-2">Bundle Mismatch</h2>
         <p class="text-sm text-gray-700 mb-4">
-            The Term or Quantity for an item in bundle #${data.bundleNumber} does not match the rest of the bundle.
+            The Term or Quantity for an item in bundle #${data.bundleNumber} does not match the rest.
         </p>
         <div class="space-y-3 mb-4">
             <div>
@@ -129,85 +204,55 @@ function _getMismatchCorrectionHtml(data) {
             </div>
         </div>
         <div class="flex justify-end space-x-3 mt-4">
-            <button class="btn-secondary" onclick="handleCancel()">Cancel & Revert</button>
-            <button class="btn-primary" onclick="handleSubmit()">Apply Fix</button>
+            <button class="btn-secondary" onclick="handleCancel(this)">Cancel & Revert</button>
+            <button class="btn-primary" onclick="handleSubmit(this, 'mismatch')">Apply Fix</button>
         </div>
     </div>
-    <script>
-      const dialogData = ${JSON.stringify(data)};
-
-      function handleSubmit() {
-        const term = document.getElementById('correctedTerm').value;
-        const quantity = document.getElementById('correctedQuantity').value;
-        const button = document.querySelector('.btn-primary');
-        button.disabled = true;
-        button.textContent = "Applying...";
-        
-        google.script.run
-          .withSuccessHandler(() => closeCorrectionPanel())
-          .withFailureHandler(err => alert('Error: ' + err.message))
-          .handleBundleMismatchConfirmation(dialogData.bundleNumber, term, quantity);
-      }
-
-      function handleCancel() {
-        const button = document.querySelector('.btn-secondary');
-        button.disabled = true;
-        button.textContent = "Reverting...";
-
-        google.script.run
-          .withSuccessHandler(() => closeCorrectionPanel())
-          .withFailureHandler(err => alert('Error: ' + err.message))
-          .handleBundleMismatchCancellation(dialogData.rowNum);
-      }
-    <\/script>
   `;
-  Log[sourceFile](`[${sourceFile} - _getMismatchCorrectionHtml] End.`);
+  Log[sourceFile](`[${sourceFile} - getMismatchCorrectionHtml] End.`);
   return html;
 }
 
-/**
- * --- NEW / INTERNAL ---
- * Generates the HTML content for the bundle gap correction UI.
- * This will be injected into the ActionSidebar.
- * @param {Object} data The data object containing the bundleNumber.
- * @returns {string} The HTML content as a string.
- */
-function _getGapCorrectionHtml(data) {
+
+function getGapCorrectionHtml(data) {
   const sourceFile = "UiService_gs";
-  Log[sourceFile](`[${sourceFile} - _getGapCorrectionHtml] Start. Generating gap HTML.`);
+  Log[sourceFile](`[${sourceFile} - getGapCorrectionHtml] Start. Generating pure gap HTML with data attributes.`);
 
   const html = `
-    <div class="p-4 bg-yellow-50 border-l-4 border-yellow-500">
+    <div id="gap-panel-content" class="p-4 bg-yellow-50 border-l-4 border-yellow-500"
+         data-bundle-number="${data.bundleNumber}">
         <h2 class="text-lg font-bold text-yellow-800 mb-2">Bundle Arrangement Error</h2>
         <p class="text-sm text-gray-700 mb-4">
-            The items for bundle #<span class="font-bold">${data.bundleNumber}</span> are not in consecutive rows. This can cause calculation errors.
-        </p>
-        <p class="text-sm text-gray-700 mb-4">
-            Would you like the script to automatically move the rows together to fix this?
+            The items for bundle #<span class="font-bold">${data.bundleNumber}</span> are not in consecutive rows.
         </p>
         <div class="flex justify-end space-x-3 mt-4">
-            <button class="btn-secondary" onclick="closeCorrectionPanel()">Cancel</button>
-            <button class="btn-primary" onclick="handleSubmit()">Yes, Fix It</button>
+            <button class="btn-secondary" onclick="handleCancel(this)">Cancel & Dissolve</button>
+            <button class="btn-primary" onclick="handleSubmit(this, 'gap')">Yes, Fix It</button>
         </div>
     </div>
-    <script>
-      const dialogData = ${JSON.stringify(data)};
-
-      function handleSubmit() {
-        const button = document.querySelector('.btn-primary');
-        button.disabled = true;
-        button.textContent = "Fixing...";
-        
-        google.script.run
-          .withSuccessHandler(() => closeCorrectionPanel())
-          .withFailureHandler((err) => {
-              alert('Error: ' + err.message);
-              closeCorrectionPanel();
-          })
-          .handleBundleGapConfirmation(dialogData.bundleNumber);
-      }
-    <\/script>
   `;
-  Log[sourceFile](`[${sourceFile} - _getGapCorrectionHtml] End.`);
+  Log[sourceFile](`[${sourceFile} - getGapCorrectionHtml] End.`);
   return html;
 }
+
+
+
+/**
+ * --- NEW ---
+ * A publicly callable function for the sidebar to get a list of all
+ * bundle errors currently present in the sheet upon loading.
+ * @returns {Array<Object>} An array of error objects from the BundleService.
+ */
+function getInitialBundleErrors() {
+  const sourceFile = "UiService_gs";
+  Log[sourceFile](`[${sourceFile} - getInitialBundleErrors] Start: Sidebar is requesting initial bundle error check.`);
+  
+  // Directly call the new function from the BundleService
+  const errors = findAllBundleErrors();
+  
+  Log[sourceFile](`[${sourceFile} - getInitialBundleErrors] End: Found ${errors.length} errors. Returning to client.`);
+  return errors;
+}
+
+
+

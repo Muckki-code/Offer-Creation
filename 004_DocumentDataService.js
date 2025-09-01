@@ -25,7 +25,10 @@ function showOfferDialog() {
   const sheetContractTerm = sheet.getRange(CONFIG.offerDetailsCells.contractTerm).getValue() || "";
   const sheetCustomDocName = sheet.getRange(CONFIG.offerDetailsCells.documentName).getValue() || "";
   let sheetDocLanguage = (sheet.getRange(CONFIG.offerDetailsCells.language).getValue() || "german").toString().trim().toLowerCase();
-  if (sheetDocLanguage !== "english" && sheetDocLanguage !== "german") { sheetDocLanguage = "german"; }
+  if (sheetDocLanguage !== "english" && sheetDocLanguage !== "german") {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'showOfferDialog_invalidLanguage' });
+    sheetDocLanguage = "german";
+  }
   let sheetOfferType = (sheet.getRange(CONFIG.offerDetailsCells.offerType).getValue() || "").toString().trim().toLowerCase();
   ExecutionTimer.end('showOfferDialog_readSheet');
 

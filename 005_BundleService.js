@@ -49,6 +49,7 @@ function validateBundle(sheet, editedRowNum, bundleNumber) {
     const sheetValue = bundleColumnValues[i][0];
     const cleanSheetValue = (typeof sheetValue === 'string') ? sheetValue.trim() : sheetValue;
     if (cleanSheetValue != "" && cleanSheetValue == bundleNumber) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'validateBundle_bundleMatch' });
       bundleRowIndices.push(i);
     }
   }
@@ -120,7 +121,7 @@ function validateBundle(sheet, editedRowNum, bundleNumber) {
 function groupApprovedItems(allDataRows, startCol) {
   const sourceFile = "BundleService_gs";
   ExecutionTimer.start('groupApprovedItems_total');
-  Log.TestCoverage_gs({ file: 'BundleService.gs', coverage: 'groupApprovedItems_start' });
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_start' });
   Log[sourceFile](`[${sourceFile} - groupApprovedItems] START. Processing ${allDataRows.length} total rows with startCol ${startCol}.`);
 
   const c = { ...CONFIG.documentDeviceData.columnIndices, ...CONFIG.approvalWorkflow.columnIndices };
@@ -134,10 +135,14 @@ function groupApprovedItems(allDataRows, startCol) {
   allDataRows.forEach((row) => {
     const bundleNumber = String(row[c.bundleNumber - startCol] || '').trim();
     if (bundleNumber) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_rowHasBundleNumber' });
       if (!bundlesMap.has(bundleNumber)) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_newBundleInMap' });
         bundlesMap.set(bundleNumber, { totalItems: 0 });
       }
       bundlesMap.get(bundleNumber).totalItems++;
+    } else {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_rowHasNoBundleNumber' });
     }
   });
   ExecutionTimer.end('groupApprovedItems_mapAllRows');
@@ -154,12 +159,12 @@ function groupApprovedItems(allDataRows, startCol) {
     const bundleNumber = String(row[c.bundleNumber - startCol] || '').trim();
     
     if (!bundleNumber) {
-      Log.TestCoverage_gs({ file: 'BundleService.gs', coverage: 'groupApprovedItems_isIndividual' });
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_isIndividual' });
       result.push({ isBundle: false, row: row });
     } else {
-      Log.TestCoverage_gs({ file: 'BundleService.gs', coverage: 'groupApprovedItems_isBundleItem' });
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_isBundleItem' });
       if (processedBundleNumbers.has(bundleNumber)) {
-        Log.TestCoverage_gs({ file: 'BundleService.gs', coverage: 'groupApprovedItems_bundleAlreadyProcessed' });
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_bundleAlreadyProcessed' });
         return;
       }
       
@@ -169,12 +174,12 @@ function groupApprovedItems(allDataRows, startCol) {
       Log[sourceFile](`[${sourceFile} - groupApprovedItems] Bundle #${bundleNumber} Check: Total items expected: ${bundleInfo ? bundleInfo.totalItems : 'N/A'}. Approved items found: ${approvedItemsInBundle.length}.`);
 
       if (!bundleInfo || approvedItemsInBundle.length !== bundleInfo.totalItems) {
-        Log.TestCoverage_gs({ file: 'BundleService.gs', coverage: 'groupApprovedItems_bundleIncomplete' });
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_bundleIncomplete' });
         Log[sourceFile](`[${sourceFile} - groupApprovedItems] Decision: Bundle #${bundleNumber} is INCOMPLETE. Skipping.`);
         return;
       }
       
-      Log.TestCoverage_gs({ file: 'BundleService.gs', coverage: 'groupApprovedItems_bundleComplete' });
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_bundleComplete' });
       Log[sourceFile](`[${sourceFile} - groupApprovedItems] Decision: Bundle #${bundleNumber} is COMPLETE. Consolidating and adding to results.`);
       
       let totalNetMonthlyPrice = 0;
@@ -200,7 +205,7 @@ function groupApprovedItems(allDataRows, startCol) {
   });
   ExecutionTimer.end('groupApprovedItems_mainLoop');
 
-  Log.TestCoverage_gs({ file: 'BundleService.gs', coverage: 'groupApprovedItems_end' });
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_end' });
   Log[sourceFile](`[${sourceFile} - groupApprovedItems] END. Processed into ${result.length} renderable items.`);
   ExecutionTimer.end('groupApprovedItems_total');
   return result;
@@ -225,10 +230,12 @@ function isBundleStillInvalid(bundleNumber) {
 
     // The logic is simple: if the validation result is NOT valid, the bundle is still broken.
     if (!validationResult.isValid) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'isBundleStillInvalid_isInvalid' });
         Log[sourceFile](`[${sourceFile} - isBundleStillInvalid] Result for bundle #${bundleNumber}: Still Invalid.`);
         return true;
     }
 
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'isBundleStillInvalid_isValid' });
     Log[sourceFile](`[${sourceFile} - isBundleStillInvalid] Result for bundle #${bundleNumber}: Now Valid.`);
     return false;
 }
@@ -279,13 +286,17 @@ function findAllBundleErrors() {
     const rowData = allData[i];
     const bundleNum = String(rowData[bundleNumColIndex] || '').trim();
     if (bundleNum) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'findAllBundleErrors_rowHasBundleNum' });
       if (!bundlesMap.has(bundleNum)) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'findAllBundleErrors_newBundleInMap' });
         bundlesMap.set(bundleNum, []);
       }
       bundlesMap.get(bundleNum).push({
         rowData: rowData,
         rowIndex: dataStartRow + i // Store original sheet row index
       });
+    } else {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'findAllBundleErrors_rowHasNoBundleNum' });
     }
   }
   ExecutionTimer.end('findAllBundleErrors_groupInMemory');
@@ -294,7 +305,10 @@ function findAllBundleErrors() {
   // 3. Validate each bundle group in memory
   ExecutionTimer.start('findAllBundleErrors_validateInMemory');
   for (const [bundleNum, rows] of bundlesMap.entries()) {
-    if (rows.length <= 1) continue;
+    if (rows.length <= 1) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'findAllBundleErrors_singleItemBundle' });
+      continue;
+    }
 
     // A. Check for non-consecutive rows (gaps)
     rows.sort((a, b) => a.rowIndex - b.rowIndex); // Ensure sorted by original row index
@@ -311,7 +325,10 @@ function findAllBundleErrors() {
         break; // Found a gap, no need to check for mismatch
       }
     }
-    if (hasGap) continue;
+    if (hasGap) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'findAllBundleErrors_gapFound' });
+      continue;
+    }
 
     // B. Check for mismatched Term or Quantity
     const expectedTerm = rows[0].rowData[termColIndex];

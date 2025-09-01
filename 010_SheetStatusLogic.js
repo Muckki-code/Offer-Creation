@@ -18,7 +18,7 @@ function _isRowDataComplete(rowValues, colIndexes, startCol, isTelekomDeal) {
   const sourceFile = "SheetStatusLogic_gs";
   ExecutionTimer.start("_isRowDataComplete_total");
   Log.TestCoverage_gs({
-    file: "SheetStatusLogic.gs",
+    file: sourceFile,
     coverage: "_isRowDataComplete_start",
   });
   Log[sourceFile](
@@ -51,7 +51,7 @@ function _isRowDataComplete(rowValues, colIndexes, startCol, isTelekomDeal) {
   ExecutionTimer.start("_isRowDataComplete_loop");
   for (const fieldName in requiredFields) {
     Log.TestCoverage_gs({
-      file: "SheetStatusLogic.gs",
+      file: sourceFile,
       coverage: "_isRowDataComplete_loop_iteration",
     });
     const field = requiredFields[fieldName];
@@ -63,7 +63,7 @@ function _isRowDataComplete(rowValues, colIndexes, startCol, isTelekomDeal) {
 
     if (!field.value || (typeof field.value === "number" && field.value <= 0)) {
       Log.TestCoverage_gs({
-        file: "SheetStatusLogic.gs",
+        file: sourceFile,
         coverage: "_isRowDataComplete_fail",
       });
       Log[sourceFile](
@@ -77,7 +77,7 @@ function _isRowDataComplete(rowValues, colIndexes, startCol, isTelekomDeal) {
   ExecutionTimer.end("_isRowDataComplete_loop");
 
   Log.TestCoverage_gs({
-    file: "SheetStatusLogic.gs",
+    file: sourceFile,
     coverage: "_isRowDataComplete_pass",
   });
   Log[sourceFile](
@@ -111,7 +111,7 @@ function updateStatusForRow(
   const sourceFile = "SheetStatusLogic_gs";
   ExecutionTimer.start("updateStatusForRow_total");
   Log.TestCoverage_gs({
-    file: "SheetStatusLogic.gs",
+    file: sourceFile,
     coverage: "updateStatusForRow_start",
   });
 
@@ -139,7 +139,7 @@ function updateStatusForRow(
 
   if (originalModel && !currentModel) {
     Log.TestCoverage_gs({
-      file: "SheetStatusLogic.gs",
+      file: sourceFile,
       coverage: "updateStatusForRow_rule_modelDeleted",
     });
     Log[sourceFile](
@@ -157,7 +157,7 @@ function updateStatusForRow(
       options.forceRevisionOfFinalizedItems)
   ) {
     Log.TestCoverage_gs({
-      file: "SheetStatusLogic.gs",
+      file: sourceFile,
       coverage: "updateStatusForRow_rule_keyFieldEditOnFinalized",
     });
     const reason = options.forceRevisionOfFinalizedItems
@@ -177,7 +177,7 @@ function updateStatusForRow(
     (!originalModel && currentModel)
   ) {
     Log.TestCoverage_gs({
-      file: "SheetStatusLogic.gs",
+      file: sourceFile,
       coverage: "updateStatusForRow_rule_nonFinalizedEdit",
     });
     Log[sourceFile](
@@ -189,6 +189,7 @@ function updateStatusForRow(
 
   ExecutionTimer.start("updateStatusForRow_finalStateDetermination");
   if (newStatus !== null) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateStatusForRow_statusIsNotNull' });
     const hasRequiredData = _isRowDataComplete(
       inMemoryRowValues,
       colIndexes,
@@ -197,12 +198,12 @@ function updateStatusForRow(
     );
     if (hasRequiredData) {
       Log.TestCoverage_gs({
-        file: "SheetStatusLogic.gs",
+        file: sourceFile,
         coverage: "updateStatusForRow_final_hasData",
       });
       if (newStatus === statusStrings.draft || newStatus === "") {
         Log.TestCoverage_gs({
-          file: "SheetStatusLogic.gs",
+          file: sourceFile,
           coverage: "updateStatusForRow_final_draftToPending",
         });
         newStatus = statusStrings.pending;
@@ -212,12 +213,12 @@ function updateStatusForRow(
       }
     } else {
       Log.TestCoverage_gs({
-        file: "SheetStatusLogic.gs",
+        file: sourceFile,
         coverage: "updateStatusForRow_final_missingData",
       });
       if (currentModel) {
         Log.TestCoverage_gs({
-          file: "SheetStatusLogic.gs",
+          file: sourceFile,
           coverage: "updateStatusForRow_final_forceToDraft",
         });
         newStatus = statusStrings.draft;
@@ -229,7 +230,7 @@ function updateStatusForRow(
         !finalizedStatuses.includes(initialStatus)
       ) {
         Log.TestCoverage_gs({
-          file: "SheetStatusLogic.gs",
+          file: sourceFile,
           coverage: "updateStatusForRow_final_forceToBlank",
         });
         Log[sourceFile](
@@ -238,6 +239,8 @@ function updateStatusForRow(
         newStatus = "";
       }
     }
+  } else {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateStatusForRow_statusIsNull' });
   }
   ExecutionTimer.end("updateStatusForRow_finalStateDetermination");
 
@@ -246,12 +249,13 @@ function updateStatusForRow(
     options.brokenBundleIds &&
     options.brokenBundleIds.size > 0
   ) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateStatusForRow_hasBrokenBundles' });
     const bundleNum = String(
       inMemoryRowValues[colIndexes.bundleNumber - startCol] || ""
     ).trim();
     if (bundleNum && options.brokenBundleIds.has(bundleNum)) {
       Log.TestCoverage_gs({
-        file: "SheetStatusLogic.gs",
+        file: sourceFile,
         coverage: "updateStatusForRow_brokenBundleOverride",
       });
       Log[sourceFile](
@@ -283,7 +287,7 @@ function wasKeyFieldEdited(currentRow, originalRow, colIndexes, startCol) {
   const sourceFile = "SheetStatusLogic_gs";
   ExecutionTimer.start("wasKeyFieldEdited_total");
   Log.TestCoverage_gs({
-    file: "SheetStatusLogic.gs",
+    file: sourceFile,
     coverage: "wasKeyFieldEdited_start",
   });
   Log[sourceFile](
@@ -309,7 +313,7 @@ function wasKeyFieldEdited(currentRow, originalRow, colIndexes, startCol) {
 
     if (currentValue !== originalValue) {
       Log.TestCoverage_gs({
-        file: "SheetStatusLogic.gs",
+        file: sourceFile,
         coverage: "wasKeyFieldEdited_fallbackPath_isChanged",
       });
       Log[sourceFile](

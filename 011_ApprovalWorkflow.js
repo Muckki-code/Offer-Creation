@@ -27,6 +27,7 @@ function processSingleApprovalAction(sheet, rowNum, e, inMemoryRowValues, allCol
 
     const bundleNumber = inMemoryRowValues[allColIndexes.bundleNumber - startCol];
     if (bundleNumber) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_isBundle' });
         Log[sourceFile](`[${sourceFile} - processSingleApprovalAction] Row ${rowNum} is part of bundle #${bundleNumber}. Performing bundle validation before processing.`);
         const validationResult = validateBundle(sheet, rowNum, bundleNumber);
         if (!validationResult.isValid) {
@@ -72,27 +73,36 @@ function processSingleApprovalAction(sheet, rowNum, e, inMemoryRowValues, allCol
         Log[sourceFile](`[${sourceFile} - processSingleApprovalAction] LRF check passed for action '${approverAction}'. LRF: ${lrfPreview}`);
         switch (approverAction) {
             case "Approve Original Price":
+                Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_approveOriginal' });
                 const originalPrice = getNumericValue(inMemoryRowValues[allColIndexes.aeSalesAskPrice - startCol]);
                 if (!originalPrice || originalPrice <= 0) {
+                    Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_approveOriginal_invalidPrice' });
                     validationError = `Row ${rowNum}: Cannot 'Approve Original Price' without a valid 'AE Sales Ask Price'.`;
                 } else {
+                    Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_approveOriginal_validPrice' });
                     finalPrice = originalPrice;
                     newStatus = statusStrings.approvedOriginal;
                 }
                 break;
             case "Approve New Price":
+                Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_approveNew' });
                 const proposedPrice = getNumericValue(inMemoryRowValues[allColIndexes.approverPriceProposal - startCol]);
                 if (!proposedPrice || proposedPrice <= 0) {
+                    Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_approveNew_invalidPrice' });
                     validationError = `Row ${rowNum}: Cannot 'Approve New Price' without a valid 'Approver Price Proposal'.`;
                 } else {
+                    Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_approveNew_validPrice' });
                     finalPrice = proposedPrice;
                     newStatus = statusStrings.approvedNew;
                 }
                 break;
             case "Reject with Comment":
+                Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_reject' });
                 if (!inMemoryRowValues[allColIndexes.approverComments - startCol] || String(inMemoryRowValues[allColIndexes.approverComments - startCol]).trim() === '') {
+                    Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_reject_noComment' });
                     validationError = `Row ${rowNum}: Cannot 'Reject with Comment' without adding a comment.`;
                 } else {
+                    Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_reject_hasComment' });
                     newStatus = statusStrings.rejected;
                 }
                 break;
@@ -119,7 +129,10 @@ function processSingleApprovalAction(sheet, rowNum, e, inMemoryRowValues, allCol
         inMemoryRowValues[allColIndexes.approvedBy - startCol] = approverEmail;
         inMemoryRowValues[allColIndexes.approvalDate - startCol] = timestamp;
         if (finalPrice !== null) {
+            Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_setFinalPrice' });
             inMemoryRowValues[allColIndexes.financeApprovedPrice - startCol] = finalPrice;
+        } else {
+            Log.TestCoverage_gs({ file: sourceFile, coverage: 'processSingleApprovalAction_noFinalPrice' });
         }
         // --- THIS IS THE FIX ---
         logTableActivity({ mainSheet: sheet, rowNum: rowNum, oldStatus: currentStatus, newStatus: newStatus, currentFullRowValues: inMemoryRowValues, originalFullRowValues: originalFullRowValues, startCol: startCol });
@@ -170,6 +183,7 @@ function runSheetHealthCheck() {
   ExecutionTimer.start('runSheetHealthCheck_mainLoop');
   Log[sourceFile](`[${sourceFile} - runSheetHealthCheck] Starting main health check loop.`);
   for (let i = 0; i < allValues.length; i++) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'runSheetHealthCheck_loop_iteration' });
     const row = allValues[i];
     const currentRowNum = startRow + i;
     // CRAZY VERBOSE LOGGING

@@ -66,6 +66,7 @@ function getDataFromSKU() {
     Log[sourceFile](`[${sourceFile} - getDataFromSKU] ERROR: Error querying BigQuery: ${e.message}. Stack: ${e.stack}`);
     return;
   } finally {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'getDataFromSKU_finallyBlock' });
     SpreadsheetApp.getActiveSpreadsheet().toast('', 'BigQuery Fetch');
   }
 
@@ -122,6 +123,7 @@ function getDataFromSKU() {
         currentRowValues[colIndexes.rentalLimitRaw - dataBlockStartCol] = isNaN(parseFloat(bqData.limit24)) ? "" : parseFloat(bqData.limit24);
 
         if (modelInRowBefore === "" || modelInRowBefore !== String(bqData.name).trim()) {
+            Log.TestCoverage_gs({ file: sourceFile, coverage: 'getDataFromSKU_modelNeedsUpdate' });
             currentRowValues[colIndexes.model - dataBlockStartCol] = bqData.name;
             needsStatusUpdate = true;
         }
@@ -163,10 +165,12 @@ function getDataFromSKU() {
     }
 
     if(needsStatusUpdate) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'getDataFromSKU_statusUpdateNeeded' });
         const initialStatus = originalRowValuesBefore[colIndexes.status - dataBlockStartCol] || "";
         const newStatus = updateStatusForRow(currentRowValues, originalRowValuesBefore, staticValues.isTelekomDeal, {}, dataBlockStartCol, colIndexes);
         
         if (newStatus !== initialStatus) {
+            Log.TestCoverage_gs({ file: sourceFile, coverage: 'getDataFromSKU_statusHasChanged' });
              if (newStatus === null) { 
                 currentRowValues[colIndexes.status - dataBlockStartCol] = ""; 
             } else {
@@ -176,6 +180,7 @@ function getDataFromSKU() {
                 }
                 const approvedStatuses = [statusStrings.approvedOriginal, statusStrings.approvedNew];
                 if (approvedStatuses.includes(initialStatus) && !approvedStatuses.includes(newStatus)) {
+                    Log.TestCoverage_gs({ file: sourceFile, coverage: 'getDataFromSKU_clearApprovalFields' });
                     currentRowValues[colIndexes.financeApprovedPrice - dataBlockStartCol] = "";
                     currentRowValues[colIndexes.approvedBy - dataBlockStartCol] = "";
                     currentRowValues[colIndexes.approvalDate - dataBlockStartCol] = "";

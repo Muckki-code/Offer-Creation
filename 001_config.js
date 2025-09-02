@@ -41,7 +41,7 @@ var CONFIG = {
     language: "I1",
     offerType: "I2",
     telekomDeal: "L1",
-    approverCell: "O5", // NEW: Cell for the dynamic approver dropdown
+    approverCell: "O1", // NEW: Cell for the dynamic approver dropdown
   },
 
   documentDeviceData: {
@@ -73,8 +73,8 @@ var CONFIG = {
     approverList: [
       // NEW: List of approvers for the dropdown
       "alexander.muegge@everphone.de",
-      "approver.2@everphone.de",
-      "approver.3@everphone.de",
+      "sabrina.fruehauf@everphone.de",
+      "geoffrey.ochs@everphone.de"
     ],
     columns: {
       // UPDATED: Merged aeEpCapex and aeTkCapex into aeCapex and shifted all subsequent columns left.
@@ -172,7 +172,7 @@ var CONFIG = {
       UxControl_gs: true,
       BundleService_gs: true,
       DocumentDataService_gs: true,
-      Formatters_gs: true,
+      Formatter_gs: true,
       TestUtilities_gs: true,
       MetadataService_gs: true,
       SheetCorrectionService_gs: true,

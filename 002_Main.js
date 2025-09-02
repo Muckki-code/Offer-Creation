@@ -10,6 +10,8 @@ function showActionSidebar() {
   SpreadsheetApp.getUi().showSidebar(html);
 }
 
+// FILE: 002_Main.js
+
 /**
  * Triggered when the spreadsheet is opened. Adds the menu.
  * @param {Object} e The event object.
@@ -18,16 +20,37 @@ function onOpen(e) {
   const sourceFile = "Main_gs";
   Log.TestCoverage_gs({ file: sourceFile, coverage: 'onOpen_start' });
   const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActive();
+
   ui.createMenu('Special Functions')
     .addItem('Show Action Sidebar', 'showActionSidebar')
     .addSeparator()
     .addItem('Setup Triggers (Run Once)', 'setupTriggers')
     .addToUi();
   _addTestMenus(ui);
-  scanAndSetAllBundleMetadata();
-  // --- THIS IS THE FIX for onOpen logic ---
-  recalculateAllRows({ refreshUx: true });
-  // --- END FIX ---
+
+  ss.toast('Please wait, sheet is initializing...', 'Initializing', -1);
+  const lock = LockService.getScriptLock();
+  try {
+    // Wait up to 30 seconds for other processes to finish before starting.
+    lock.waitLock(30000); 
+    Log[sourceFile]("[Main.gs - onOpen] Lock acquired. Starting sheet initialization.");
+
+    scanAndSetAllBundleMetadata();
+    recalculateAllRows({ refreshUx: true });
+
+    ss.toast('Sheet is ready.', 'Ready', 5);
+    Log[sourceFile]("[Main.gs - onOpen] Initialization complete.");
+
+  } catch (err) {
+    Log[sourceFile](`[Main.gs - onOpen] WARNING: Could not obtain lock during initialization. Error: ${err.message}.`);
+    ss.toast('Could not complete initialization. The sheet might be busy. Please try refreshing.', 'Initialization Failed', 10);
+  } finally {
+    if (lock) {
+      lock.releaseLock();
+      Log[sourceFile]("[Main.gs - onOpen] Lock released.");
+    }
+  }
 }
 
 /**

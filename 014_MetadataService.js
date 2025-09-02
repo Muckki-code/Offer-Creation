@@ -81,3 +81,102 @@ function _getBundleInfoFromRange(range) {
   ExecutionTimer.end('_getBundleInfoFromRange_total');
   return null;
 }
+
+/**
+ * --- NEW ---
+ * Scans the entire sheet for valid bundles, clears all old bundle metadata,
+ * and sets new metadata for all currently valid, multi-item bundles.
+ * This function is designed to be called on open to initialize the sheet's state.
+ * It is highly optimized to perform a single read and process data in memory.
+ * REVISED: Now uses a robust, iterative method to find and remove all old metadata.
+ */
+function scanAndSetAllBundleMetadata() {
+  const sourceFile = "MetadataService_gs";
+  ExecutionTimer.start('scanAndSetAllBundleMetadata_total');
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_start' });
+  Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] Start: Full sheet scan for bundle metadata initialization.`);
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const startRow = CONFIG.approvalWorkflow.startDataRow;
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow < startRow) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_noDataRows' });
+    Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] No data rows to process. Exiting.`);
+    ExecutionTimer.end('scanAndSetAllBundleMetadata_total');
+    return;
+  }
+  
+  ExecutionTimer.start('scanAndSetAllBundleMetadata_clearMetadata');
+  // --- THIS IS THE FIX ---
+  // Use a robust, iterative finder-remover pattern when batch removal fails.
+  const existingMetadata = sheet.createDeveloperMetadataFinder().withKey(METADATA_KEY_BUNDLE).find();
+  if (existingMetadata && existingMetadata.length > 0) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_clearingExisting' });
+    Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] Found ${existingMetadata.length} existing metadata entries. Removing them individually.`);
+    existingMetadata.forEach(meta => meta.remove());
+  }
+  Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] Cleared all existing bundle metadata from the entire sheet.`);
+  // --- END FIX ---
+  ExecutionTimer.end('scanAndSetAllBundleMetadata_clearMetadata');
+
+
+  ExecutionTimer.start('scanAndSetAllBundleMetadata_readSheet');
+  const bundleNumCol = CONFIG.documentDeviceData.columnIndices.bundleNumber;
+  const bundleColumnValues = sheet.getRange(startRow, bundleNumCol, lastRow - startRow + 1, 1).getValues();
+  ExecutionTimer.end('scanAndSetAllBundleMetadata_readSheet');
+
+  ExecutionTimer.start('scanAndSetAllBundleMetadata_groupInMemory');
+  const bundlesMap = new Map();
+  bundleColumnValues.forEach((val, index) => {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_loop_iteration' });
+    const bundleNum = String(val[0] || '').trim();
+    if (bundleNum) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_bundleNumFound' });
+      if (!bundlesMap.has(bundleNum)) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_newBundleInMap' });
+        bundlesMap.set(bundleNum, []);
+      }
+      bundlesMap.get(bundleNum).push({
+        rowIndex: startRow + index
+      });
+    }
+  });
+  ExecutionTimer.end('scanAndSetAllBundleMetadata_groupInMemory');
+  Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] Grouped ${bundlesMap.size} unique bundle numbers in memory.`);
+
+  ExecutionTimer.start('scanAndSetAllBundleMetadata_validateAndSet');
+  for (const [bundleNum, rows] of bundlesMap.entries()) {
+    if (rows.length <= 1) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_singleItemBundle' });
+      continue; // Not a multi-item bundle, no metadata needed
+    }
+
+    // Since we're not validating term/quantity here (that's for onEdit), we only check for gaps.
+    rows.sort((a, b) => a.rowIndex - b.rowIndex);
+    let isConsecutive = true;
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i].rowIndex !== rows[i - 1].rowIndex + 1) {
+        Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_gapDetected' });
+        isConsecutive = false;
+        break;
+      }
+    }
+
+    if (isConsecutive) {
+      Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_isValidConsecutive' });
+      const bundleInfo = {
+        bundleId: bundleNum,
+        startRow: rows[0].rowIndex,
+        endRow: rows[rows.length - 1].rowIndex
+      };
+      Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] Found valid bundle #${bundleNum}. Setting metadata for rows ${bundleInfo.startRow}-${bundleInfo.endRow}.`);
+      _setMetadataForRowRange(sheet, bundleInfo);
+    }
+  }
+  ExecutionTimer.end('scanAndSetAllBundleMetadata_validateAndSet');
+
+  Log[sourceFile](`[${sourceFile} - scanAndSetAllBundleMetadata] End: Full metadata scan and update complete.`);
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'scanAndSetAllBundleMetadata_end' });
+  ExecutionTimer.end('scanAndSetAllBundleMetadata_total');
+}

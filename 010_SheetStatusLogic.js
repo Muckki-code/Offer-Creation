@@ -92,10 +92,12 @@ function _isRowDataComplete(rowValues, colIndexes, startCol, isTelekomDeal) {
  * REFACTORED: This is now a "pure" function. It is READ-ONLY and does not
  * modify any data arrays. It only returns the calculated new status string (or null).
  * This prevents destructive side-effect bugs from race conditions.
+ * REVISED: Now includes context-aware logic to differentiate between a direct user edit
+ * and a programmatic recalculation via the 'options' parameter.
  * @param {Array<any>} inMemoryRowValues The current, in-memory array of values for the row.
  * @param {Array<any>} originalFullRowValuesFromCaller The array of values for the row before the edit.
  * @param {boolean} isTelekomDeal Whether the current sheet is marked as a Telekom Deal.
- * @param {Object} options An optional options object. Can contain { forceRevisionOfFinalizedItems: boolean, brokenBundleIds: Set<string> }.
+ * @param {Object} options An optional options object. Can contain { forceRevisionOfFinalizedItems: boolean }.
  * @param {number} startCol The 1-based index of the starting column for the rowValues array.
  * @param {Object} allColIndexes A map of column names to their 1-based index.
  * @returns {string|null} The calculated new status string, or null if the row should be completely cleared.
@@ -127,7 +129,9 @@ function updateStatusForRow(
 
   let newStatus = initialStatus;
   Log[sourceFile](
-    `[${sourceFile} - updateStatusForRow] Analyze Start: initialStatus='${initialStatus}'.`
+    `[${sourceFile} - updateStatusForRow] Analyze Start: initialStatus='${initialStatus}', options=${JSON.stringify(
+      options
+    )}.`
   );
 
   ExecutionTimer.start("updateStatusForRow_stateMachine");
@@ -136,52 +140,46 @@ function updateStatusForRow(
     statusStrings.approvedNew,
     statusStrings.rejected,
   ];
+  const keyFieldWasEdited = wasKeyFieldEdited(
+    inMemoryRowValues,
+    originalFullRowValuesFromCaller,
+    colIndexes,
+    startCol
+  );
 
+  // --- REVISED STATE MACHINE ---
   if (originalModel && !currentModel) {
     Log.TestCoverage_gs({
       file: sourceFile,
       coverage: "updateStatusForRow_rule_modelDeleted",
     });
     Log[sourceFile](
-      `[${sourceFile} - updateStatusForRow] Rule #1 Result: Model deleted. Returning null to signal a full clear.`
+      `[${sourceFile} - updateStatusForRow] Rule #1: Model was deleted. Returning null to signal a full row clear.`
     );
     newStatus = null;
-  } else if (
-    finalizedStatuses.includes(initialStatus) &&
-    (wasKeyFieldEdited(
-      inMemoryRowValues,
-      originalFullRowValuesFromCaller,
-      colIndexes,
-      startCol
-    ) ||
-      options.forceRevisionOfFinalizedItems)
-  ) {
+  } else if (finalizedStatuses.includes(initialStatus) && keyFieldWasEdited) {
     Log.TestCoverage_gs({
       file: sourceFile,
       coverage: "updateStatusForRow_rule_keyFieldEditOnFinalized",
     });
-    const reason = options.forceRevisionOfFinalizedItems
-      ? "bulk recalculation"
-      : "a key field was edited";
     Log[sourceFile](
-      `[${sourceFile} - updateStatusForRow] Rule #2 Result: Finalized item revised due to ${reason}. Setting status to 'Revised by AE'.`
+      `[${sourceFile} - updateStatusForRow] Rule #2: A finalized item was edited. Setting status to 'Revised by AE'.`
     );
     newStatus = statusStrings.revisedByAE;
   } else if (
-    wasKeyFieldEdited(
-      inMemoryRowValues,
-      originalFullRowValuesFromCaller,
-      colIndexes,
-      startCol
-    ) ||
-    (!originalModel && currentModel)
+    (!originalModel && currentModel) ||
+    (!options.forceRevisionOfFinalizedItems && keyFieldWasEdited)
   ) {
+    // --- THIS IS THE FIX ---
+    // This block now only runs for a NEW row OR a "real" user edit (when forceRevision is false).
+    // It is skipped during a bulk recalculation, which prevents the incorrect "Draft" reset.
+    // --- END FIX ---
     Log.TestCoverage_gs({
       file: sourceFile,
       coverage: "updateStatusForRow_rule_nonFinalizedEdit",
     });
     Log[sourceFile](
-      `[${sourceFile} - updateStatusForRow] Rule #3 Result: Non-finalized item edit or new model. Setting status to 'Draft'.`
+      `[${sourceFile} - updateStatusForRow] Rule #3: A non-finalized item was edited by a user, or it's a new row. Resetting status to 'Draft' for re-evaluation.`
     );
     newStatus = statusStrings.draft;
   }
@@ -189,7 +187,10 @@ function updateStatusForRow(
 
   ExecutionTimer.start("updateStatusForRow_finalStateDetermination");
   if (newStatus !== null) {
-    Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateStatusForRow_statusIsNotNull' });
+    Log.TestCoverage_gs({
+      file: sourceFile,
+      coverage: "updateStatusForRow_statusIsNotNull",
+    });
     const hasRequiredData = _isRowDataComplete(
       inMemoryRowValues,
       colIndexes,
@@ -201,14 +202,18 @@ function updateStatusForRow(
         file: sourceFile,
         coverage: "updateStatusForRow_final_hasData",
       });
-      if (newStatus === statusStrings.draft || newStatus === "") {
+      if (
+        newStatus === statusStrings.draft ||
+        newStatus === "" ||
+        newStatus === statusStrings.revisedByAE
+      ) {
         Log.TestCoverage_gs({
           file: sourceFile,
-          coverage: "updateStatusForRow_final_draftToPending",
+          coverage: "updateStatusForRow_final_promoteToPending",
         });
         newStatus = statusStrings.pending;
         Log[sourceFile](
-          `[${sourceFile} - updateStatusForRow] Final State Check: Row has required data. Promoting status to '${newStatus}'.`
+          `[${sourceFile} - updateStatusForRow] Final State Check: Row has required data. Promoting/setting status to '${newStatus}'.`
         );
       }
     } else {
@@ -240,30 +245,12 @@ function updateStatusForRow(
       }
     }
   } else {
-    Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateStatusForRow_statusIsNull' });
+    Log.TestCoverage_gs({
+      file: sourceFile,
+      coverage: "updateStatusForRow_statusIsNull",
+    });
   }
   ExecutionTimer.end("updateStatusForRow_finalStateDetermination");
-
-  if (
-    newStatus !== null &&
-    options.brokenBundleIds &&
-    options.brokenBundleIds.size > 0
-  ) {
-    Log.TestCoverage_gs({ file: sourceFile, coverage: 'updateStatusForRow_hasBrokenBundles' });
-    const bundleNum = String(
-      inMemoryRowValues[colIndexes.bundleNumber - startCol] || ""
-    ).trim();
-    if (bundleNum && options.brokenBundleIds.has(bundleNum)) {
-      Log.TestCoverage_gs({
-        file: sourceFile,
-        coverage: "updateStatusForRow_brokenBundleOverride",
-      });
-      Log[sourceFile](
-        `[${sourceFile} - updateStatusForRow] BROKEN BUNDLE OVERRIDE: Row is part of broken bundle #${bundleNum}. Forcing status to 'Draft'.`
-      );
-      newStatus = statusStrings.draft;
-    }
-  }
 
   Log[sourceFile](
     `[${sourceFile} - updateStatusForRow] Analyze End. Final calculated status is '${newStatus}'.`

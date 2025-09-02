@@ -5,12 +5,10 @@
 
 /**
  * Applies the correct term and quantity to ALL rows within a given bundle.
- * @param {string|number} bundleNumber The bundle ID to correct.
- * @param {string|number} term The correct term to apply.
- * @param {string|number} quantity The correct quantity to apply.
  */
 function applyBundleCorrection(bundleNumber, term, quantity) {
   const sourceFile = "SheetCorrectionService_gs";
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'applyBundleCorrection_start' });
   Log[sourceFile](
     `[${sourceFile} - applyBundleCorrection] Start. Applying Term=${term}, Qty=${quantity} to ALL of bundle #${bundleNumber}.`
   );
@@ -46,10 +44,12 @@ function applyBundleCorrection(bundleNumber, term, quantity) {
     Log[sourceFile](
       `[${sourceFile} - applyBundleCorrection] End. Correction successful.`
     );
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'applyBundleCorrection_end' });
   } catch (e) {
     Log[sourceFile](
       `[${sourceFile} - applyBundleCorrection] ERROR: ${e.message}`
     );
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'applyBundleCorrection_error' });
     SpreadsheetApp.getActive().toast(
       `Failed to apply bundle correction: ${e.message}`,
       "Error",
@@ -57,7 +57,6 @@ function applyBundleCorrection(bundleNumber, term, quantity) {
     );
   }
 }
-
 
 
 /**
@@ -187,7 +186,6 @@ function _findBundleRange(sheet, bundleNumber) {
  * --- NEW ---
  * Finds all rows belonging to a given bundle number and clears the bundle
  * number from them, effectively dissolving the bundle.
- * @param {string|number} bundleNumber The bundle ID to dissolve.
  */
 function dissolveBundle(bundleNumber) {
   const sourceFile = "SheetCorrectionService_gs";
@@ -241,9 +239,10 @@ function dissolveBundle(bundleNumber) {
     }
 
     Log[sourceFile](`[${sourceFile} - dissolveBundle] End. Dissolved bundle #${bundleNumber}.`);
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'dissolveBundle_end' });
   } catch (e) {
     Log[sourceFile](`[${sourceFile} - dissolveBundle] ERROR: ${e.message}`);
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'dissolveBundle_error' });
     SpreadsheetApp.getActive().toast(`Failed to dissolve bundle: ${e.message}`, "Error", 5);
   }
 }
-

@@ -246,3 +246,61 @@ function dissolveBundle(bundleNumber) {
     SpreadsheetApp.getActive().toast(`Failed to dissolve bundle: ${e.message}`, "Error", 5);
   }
 }
+
+/**
+ * A periodic, self-healing function that brings all bundle borders into alignment
+ * with the current data state. It is robust and does not rely on metadata.
+ */
+function repairAllBundleBorders() {
+  const sourceFile = "SheetCorrectionService_gs";
+  ExecutionTimer.start('repairAllBundleBorders_total');
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'repairAllBundleBorders_start' });
+  Log[sourceFile]("[repairAllBundleBorders] Starting periodic bundle border repair job.");
+  
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const dataStartRow = CONFIG.approvalWorkflow.startDataRow;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < dataStartRow) {
+    Log.TestCoverage_gs({ file: sourceFile, coverage: 'repairAllBundleBorders_noData' });
+    ExecutionTimer.end('repairAllBundleBorders_total');
+    return;
+  }
+
+  const dataBlockStartCol = CONFIG.documentDeviceData.columnIndices.sku;
+  const numCols = CONFIG.maxDataColumn - dataBlockStartCol + 1;
+  const fullDataRange = sheet.getRange(dataStartRow, dataBlockStartCol, lastRow - dataStartRow + 1, numCols);
+
+  ExecutionTimer.start('repairAllBundleBorders_clearAll');
+  fullDataRange.setBorder(null, null, null, null, null, null);
+  ExecutionTimer.end('repairAllBundleBorders_clearAll');
+
+  // Find all bundle numbers from the sheet data
+  const bundleNumCol = CONFIG.documentDeviceData.columnIndices.bundleNumber;
+  const allBundleNumbers = sheet.getRange(dataStartRow, bundleNumCol, lastRow - dataStartRow + 1, 1).getValues()
+                                .flat()
+                                .map(String)
+                                .filter(val => val.trim() !== '');
+  const uniqueBundleNumbers = [...new Set(allBundleNumbers)];
+
+  ExecutionTimer.start('repairAllBundleBorders_validateAndApply');
+  uniqueBundleNumbers.forEach(bundleNum => {
+    // We use the robust validateBundle function as our single source of truth.
+    // We pass the first row of the sheet as a placeholder for editedRowNum.
+    const validationResult = validateBundle(sheet, dataStartRow, bundleNum);
+    
+    if (validationResult.startRow && validationResult.endRow && validationResult.endRow > validationResult.startRow) {
+       const range = sheet.getRange(validationResult.startRow, dataBlockStartCol, validationResult.endRow - validationResult.startRow + 1, numCols);
+       if (validationResult.isValid) {
+         _clearAndApplyBundleBorder(range); // Your standard border function
+       } else {
+         // Apply a distinct border for invalid bundles
+         range.setBorder(true, true, true, true, false, false, '#ff0000', SpreadsheetApp.BorderStyle.DASHED);
+       }
+    }
+  });
+  ExecutionTimer.end('repairAllBundleBorders_validateAndApply');
+  
+  Log[sourceFile]("[repairAllBundleBorders] Border repair job complete.");
+  Log.TestCoverage_gs({ file: sourceFile, coverage: 'repairAllBundleBorders_end' });
+  ExecutionTimer.end('repairAllBundleBorders_total');
+}

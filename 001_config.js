@@ -29,6 +29,7 @@ var CONFIG = {
   maxDataColumn: 21, // UPDATED: Last column is now U (21)
 
   offerDetailsCells: {
+    cachedHeaderRangeA1: "F1:O4", // <-- ADD THIS LINE
     customerCompany: "G1",
     companyAddress: "G3",
     customerContactName: "G2",
@@ -98,7 +99,6 @@ var CONFIG = {
       pending: "Pending Approval",
       approvedOriginal: "Approved (Original Price)",
       approvedNew: "Approved (New Price)",
-      revisedByAE: "Revised by AE",
       rejected: "Rejected",
     },
     friendlyColumnNames: {
@@ -160,7 +160,7 @@ var CONFIG = {
     globalDisable: false,
     sheetLogDisable: true,
     file: {
-      config_gs: false,
+      config_gs: true,
       Logger_gs: false,
       Main_gs: true,
       SheetCoreAutomations_gs: true,

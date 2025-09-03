@@ -44,7 +44,7 @@ function applyUxRules(formatIncluded = true) {
     const isRowNotBlank = `NOT(ISBLANK($${indexColLetter}${startRow}))`;
 
     conditionalRules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND(${isRowNotBlank}, OR($${statusColLetter}${startRow}="${statusStrings.approvedOriginal}", $${statusColLetter}${startRow}="${statusStrings.approvedNew}"))`).setBackground(colors.approved.background).setRanges([openEndedRange]).build());
-    conditionalRules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND(${isRowNotBlank}, OR($${statusColLetter}${startRow}="${statusStrings.pending}", $${statusColLetter}${startRow}="${statusStrings.revisedByAE}"))`).setBackground(colors.pending.background).setRanges([openEndedRange]).build());
+    conditionalRules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND(${isRowNotBlank}, $${statusColLetter}${startRow}="${statusStrings.pending}")`).setBackground(colors.pending.background).setRanges([openEndedRange]).build());
     conditionalRules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND(${isRowNotBlank}, $${statusColLetter}${startRow}="${statusStrings.rejected}")`).setBackground(colors.rejected.background).setRanges([openEndedRange]).build());
     conditionalRules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND(${isRowNotBlank}, $${statusColLetter}${startRow}="${statusStrings.draft}")`).setBackground(colors.draft.background).setRanges([openEndedRange]).build());
     conditionalRules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(`=AND(${isRowNotBlank}, ISBLANK($${statusColLetter}${startRow}))`).setBackground("#ffffff").setRanges([openEndedRange]).build());

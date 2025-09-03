@@ -113,7 +113,7 @@ function test_applyUxRules_modes() {
       _verifyRowColor(startRow + 2, colors.approved.background, "Approved");
       _verifyRowColor(startRow + 3, defaultColor, "No Status");
       _verifyRowColor(startRow + 4, colors.rejected.background, "Rejected");
-      _verifyRowColor(startRow + 5, colors.pending.background, "Revised by AE");
+      _verifyRowColor(startRow + 5, colors.pending.background, "Pending");
 
       // --- Verification 1B: Check Data Validation ---
       const dropdownCell = sheet.getRange(startRow, approverActionCol);

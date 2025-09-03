@@ -246,7 +246,7 @@
     <script>
       let currentErrorBundleId = null; // Variable to track the currently displayed error
       let currentDisplayedErrorSignature = null; // NEW: Tracks the state of displayed errors
-      
+
       // --- Tab Management ---
       function openTab(evt, tabName) {
         let i, tabcontent, tablinks;
@@ -282,7 +282,7 @@
       }
 
       // --- Status Message Handling ---
-      function showStatus(message, isError = false, duration = 4000) {
+      function showStatus(message, isError = false, duration = 2000) {
         const statusBox = document.getElementById("status-box");
         if (!statusBox) return;
 
@@ -297,7 +297,6 @@
 
       // --- Server-side Function Caller ---
       function callServerFunction(functionName, statusMessage) {
-        closeCorrectionPanel(); // Hide correction panel when a main action is taken
         showStatus(statusMessage || `Executing ${functionName}...`);
         google.script.run
           .withSuccessHandler((response) => {
@@ -305,6 +304,8 @@
               `${functionName.replace(/([A-Z])/g, " $1").trim()} completed.`,
               false
             );
+            // After a successful action, proactively check for errors.
+            checkForInitialErrors();
           })
           .withFailureHandler((error) => {
             showStatus(`Error: ${error.message}`, true, 8000);
@@ -314,7 +315,7 @@
 
       // --- NEW: Correction Panel Functions ---
       // --- NEW: Polling Mechanism for UI Updates ---
-      isPollingActive = setInterval(pollForUiUpdates(), 4000);
+      isPollingActive = setInterval(pollForUiUpdates(), 2000);
 
       function displayBundleErrors(errors) {
         const panel = document.getElementById("correction-panel");
@@ -322,17 +323,11 @@
 
         // --- CORE LOGIC: Only update the DOM if the state of errors has changed ---
         if (newSignature === currentDisplayedErrorSignature) {
-          console.log("No change in error state. UI update skipped.");
           return; // Do nothing if errors are the same
         }
-        
-        console.log(`Error state changed. Old: '${currentDisplayedErrorSignature}', New: '${newSignature}'. Updating UI.`);
-        currentDisplayedErrorSignature = newSignature; // Update the signature
-        
-        // Show a loading/updating message immediately for better UX
-        panel.innerHTML = '<p class="p-4 text-center text-gray-500">Updating errors...</p>';
-        panel.classList.remove("hidden");
 
+        currentDisplayedErrorSignature = newSignature; // Update the signature
+        panel.classList.remove("hidden");
 
         if (!errors || errors.length === 0) {
           panel.innerHTML = ""; // Clear content
@@ -340,9 +335,8 @@
           return;
         }
 
-        // The rest of the logic for building the UI remains the same
         if (errors.length === 1) {
-          // --- Single Error: Use the existing logic ---
+          // --- Single Error Display ---
           const error = errors[0];
           const functionName =
             error.errorCode === "GAP_DETECTED"
@@ -350,36 +344,31 @@
               : "getMismatchCorrectionHtml";
           const dataPayload = {
             bundleNumber: error.bundleNumber,
-            // For mismatch errors, create the data payload
             ...(error.errorCode === "MISMATCH" && {
-              rowNum: "N/A", // Not relevant for a proactive check
-              currentValues: { term: "?", quantity: "?" }, // Placeholder
               expectedValues: error.expected,
             }),
           };
-          showCorrectionPanel(functionName, dataPayload); // This function will overwrite the loading message
+          showCorrectionPanel(functionName, dataPayload);
         } else {
           // --- Multiple Errors: Build a tabbed interface ---
           let tabHeaders = '<div class="tab-nav">';
           let tabContentsContainer = '<div class="mt-2">';
-
           errors.forEach((error, index) => {
             const isActive = index === 0 ? "active" : "";
             tabHeaders += `
-              <button class="tab-button ${isActive}" 
-                      onclick="openErrorTab(event, 'error-tab-${index}')"
-                      data-error-code="${error.errorCode}"
-                      data-bundle-number="${error.bundleNumber}"
-                      data-expected='${JSON.stringify(error.expected || {})}'>
-                Bundle #${error.bundleNumber}
-              </button>
-            `;
+        <button class="tab-button ${isActive}" 
+                onclick="openErrorTab(event, 'error-tab-${index}')"
+                data-error-code="${error.errorCode}"
+                data-bundle-number="${error.bundleNumber}"
+                data-expected='${JSON.stringify(error.expected || {})}'>
+          Bundle #${error.bundleNumber}
+        </button>
+      `;
             tabContentsContainer += `<div id="error-tab-${index}" class="tab-content ${isActive}"></div>`;
           });
-
           tabHeaders += "</div>";
           tabContentsContainer += "</div>";
-          panel.innerHTML = tabHeaders + tabContentsContainer; // This overwrites the loading message
+          panel.innerHTML = tabHeaders + tabContentsContainer;
 
           // Automatically load the content for the first tab
           const firstTab = panel.querySelector(".tab-button");
@@ -388,6 +377,7 @@
           }
         }
       }
+
       function openErrorTab(event, tabId) {
         // First, hide all tab contents and remove active class from all tab buttons
         const tabContents = document.querySelectorAll(
@@ -440,55 +430,44 @@
         }
         // Create a consistent signature by sorting by bundle number
         return errors
-          .map(e => `${e.bundleNumber}:${e.errorCode}`)
+          .map((e) => `${e.bundleNumber}:${e.errorCode}`)
           .sort()
-          .join(';');
+          .join(";");
       }
 
       function pollForUiUpdates() {
-        // This is a self-contained closure to manage the counter.
         let pollCounter = 0;
-
         return function() {
           pollCounter++;
-
-          // First, always perform the lightweight check for live edits.
+          // 1. Always do a quick check for live errors staged by onEdit
           google.script.run
             .withSuccessHandler(function(liveUpdates) {
               if (Array.isArray(liveUpdates) && liveUpdates.length > 0) {
-                console.log("Found live edit errors:", liveUpdates);
-                pollCounter = 0; // Reset counter after displaying live feedback
+                pollCounter = 0; // Reset counter after finding a live update
                 const errorObjects = liveUpdates.map((u) => ({
                   bundleNumber: u.data.bundleNumber,
                   errorCode:
-                    u.data.errorCode ||
-                    (u.functionName === "getGapCorrectionHtml"
+                    u.functionName === "getGapCorrectionHtml"
                       ? "GAP_DETECTED"
-                      : "MISMATCH"),
-                  errorMessage: u.data.errorMessage || "",
-                  expected: u.data.expectedValues || u.data.expected || null,
+                      : "MISMATCH",
+                  expected: u.data.expectedValues,
                 }));
-                displayBundleErrors(errorObjects); // Let the new smart function decide to update
+                displayBundleErrors(errorObjects);
               } else {
-                // If there were NO live errors, then consider a full check.
-                if (pollCounter % 3 === 0) {
-                  console.log("No live errors. Performing periodic full sheet audit.");
+                // 2. If no live errors, do a periodic full audit (every 4 polls = ~6 seconds)
+                if (pollCounter % 4 === 0) {
                   google.script.run
-                    .withSuccessHandler(displayBundleErrors) // Let the new smart function decide
+                    .withSuccessHandler(displayBundleErrors)
                     .getInitialBundleErrors();
+                  // AND trigger the fire-and-forget border repair job
+                  google.script.run.repairAllBundleBorders();
                 }
               }
             })
-            .withFailureHandler(function(err) {
-              if (isPollingActive) {
-                clearInterval(isPollingActive);
-                isPollingActive = false;
-              }
-              console.error("Polling failed:", err);
-            })
             .getSidebarUpdate();
         };
-      }      
+      }
+
       function handleSubmit(button, type) {
         button.disabled = true;
 
@@ -561,16 +540,13 @@
         panel.innerHTML = "";
         panel.classList.add("hidden"); // Simply hide the panel
       }
+      
       // --- NEW: Proactive Error Checking ---
       function checkForInitialErrors() {
-        console.log("Checking for initial bundle errors on load...");
         google.script.run
           .withSuccessHandler(function(errors) {
-            if (errors && errors.length > 0) {
-              console.log("Found initial errors:", errors);
+            if (errors) {
               displayBundleErrors(errors);
-            } else {
-              console.log("No initial bundle errors found.");
             }
           })
           .withFailureHandler(function(err) {
@@ -579,19 +555,18 @@
           })
           .getInitialBundleErrors();
       }
-
+      
       // --- Initialize View & Start Polling ---
       // --- Initialize View & Start Polling ---
       // --- Initialize View & Start Polling ---
       document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("main-functions").classList.add("active");
 
-        checkForInitialErrors(); // <-- ADD THIS LINE
+        checkForInitialErrors(); // Check for errors as soon as the sidebar loads
 
-        // Start polling for UI updates only if it hasn't been started already
         if (!isPollingActive) {
-          isPollingActive = setInterval(pollForUiUpdates, 4000); // Check every 4 seconds
-          console.log("UI Polling Started.");
+          // Faster polling interval for more responsive feedback
+          isPollingActive = setInterval(pollForUiUpdates(), 2000); // Check every 1.5 seconds
         }
       });
 
@@ -628,6 +603,7 @@
           );
         }
       }
+    
     </script>
   </body>
 </html>

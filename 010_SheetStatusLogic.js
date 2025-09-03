@@ -158,14 +158,21 @@ function updateStatusForRow(
     );
     newStatus = null;
   } else if (finalizedStatuses.includes(initialStatus) && keyFieldWasEdited) {
-    Log.TestCoverage_gs({
-      file: sourceFile,
-      coverage: "updateStatusForRow_rule_keyFieldEditOnFinalized",
-    });
     Log[sourceFile](
-      `[${sourceFile} - updateStatusForRow] Rule #2: A finalized item was edited. Setting status to 'Revised by AE'.`
+      `[${sourceFile} - updateStatusForRow] Rule #2: A finalized item was edited. Determining next state directly.`
     );
-    newStatus = statusStrings.revisedByAE;
+    // A finalized item was edited. Decide its new state immediately.
+    const hasRequiredData = _isRowDataComplete(
+      inMemoryRowValues,
+      allColIndexes,
+      startCol,
+      isTelekomDeal
+    );
+    if (hasRequiredData) {
+      newStatus = statusStrings.pending; // Jump directly to Pending
+    } else {
+      newStatus = statusStrings.draft; // Jump directly to Draft
+    }
   } else if (
     (!originalModel && currentModel) ||
     (!options.forceRevisionOfFinalizedItems && keyFieldWasEdited)
@@ -204,8 +211,7 @@ function updateStatusForRow(
       });
       if (
         newStatus === statusStrings.draft ||
-        newStatus === "" ||
-        newStatus === statusStrings.revisedByAE
+        newStatus === "" 
       ) {
         Log.TestCoverage_gs({
           file: sourceFile,

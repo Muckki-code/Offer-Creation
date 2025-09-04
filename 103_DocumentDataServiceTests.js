@@ -52,30 +52,34 @@ function test_prepareDocumentData_Integration() {
           _assertEqual(dataPackage.customerCompanyName, "Test Customer GmbH", `${testName} - Customer company name should be correct.`);
           _assertEqual(dataPackage.docLanguage, "german", `${testName} - Document language should be correct.`);
           
-          _assertEqual(dataPackage.devicesData.length, 3, `${testName} - devicesData should contain 3 renderable items.`);
+          // There should be one individual item (Lenovo) and one bundled item.
+          _assertEqual(dataPackage.devicesData.length, 2, `${testName} - devicesData should contain 2 renderable items.`);
           
-          const bundle = dataPackage.devicesData.find(d => d.model.includes("\n")); 
-          _assertNotNull(bundle, `${testName} - A consolidated bundle should be present in devicesData.`);
+          // Verify the bundle
+          const bundle = dataPackage.devicesData.find(d => d.bundleId === "101");
+          _assertNotNull(bundle, `${testName} - A consolidated bundle (ID 101) should be present in devicesData.`);
           if (bundle) {
-            _assertEqual(bundle.quantity, 10, `${testName} - Bundle quantity should be correct.`);
-            _assertEqual(bundle.term, 24, `${testName} - Bundle term should be correct.`);
-            _assertWithinTolerance(bundle.netMonthlyRentalPrice, 55.50, 0.001, `${testName} - Bundle's net monthly price should be the sum.`);
-            _assertWithinTolerance(bundle.totalNetMonthlyRentalPrice, 555.00, 0.001, `${testName} - Bundle's total price should be price * quantity.`);
+            _assertEqual(bundle.quantity, 5, `${testName} - Bundle quantity should be 5.`);
+            _assertEqual(bundle.term, 24, `${testName} - Bundle term should be 24.`);
+            // Net monthly price is the sum of the prices of the items in the bundle
+            _assertWithinTolerance(bundle.netMonthlyRentalPrice, 138.48, 0.001, `${testName} - Bundle's net monthly price should be the sum (64.49 + 73.99).`);
+            // Total net monthly price is the net monthly price * quantity
+            _assertWithinTolerance(bundle.totalNetMonthlyRentalPrice, 692.40, 0.001, `${testName} - Bundle's total price should be price * quantity (138.48 * 5).`);
           }
           
-          const individualItem = dataPackage.devicesData.find(d => d.model === "Individual Approved A");
-          _assertNotNull(individualItem, `${testName} - An individual approved item should be present.`);
+          // Verify the individual item
+          const individualItem = dataPackage.devicesData.find(d => d.model === "Lenovo ThinkPad T14 G5");
+          _assertNotNull(individualItem, `${testName} - The individual Lenovo item should be present.`);
           if (individualItem) {
-            _assertEqual(individualItem.quantity, 1, `${testName} - Individual item quantity should be correct.`);
-            _assertEqual(individualItem.netMonthlyRentalPrice, 50.00, `${testName} - Individual item price should be correct.`);
+            _assertEqual(individualItem.quantity, 10, `${testName} - Individual item quantity should be 10.`);
+            _assertWithinTolerance(individualItem.netMonthlyRentalPrice, 61.99, 0.001, `${testName} - Individual item price should be correct.`);
           }
           
-          // Calculation based on updated MOCK_DATA_INTEGRATION.groupingTestsAsArray (21-column)
-          // Bundle: (25.50 + 30.00) * 10 = 555.00
-          // Individual A: 50.00 * 1 = 50.00
-          // Individual B: 100.00 * 2 = 200.00
-          // Total = 555 + 50 + 200 = 805.00
-          const expectedGrandTotal = 805.00; 
+          // Calculation based on updated MOCK_DATA_INTEGRATION.groupingTestsAsArray (23-column)
+          // Lenovo: 61.99 * 10 = 619.90
+          // Bundle 101 (iPhone 512GB + iPhone 1TB): (64.49 + 73.99) * 5 = 138.48 * 5 = 692.40
+          // Total = 619.90 + 692.40 = 1312.30
+          const expectedGrandTotal = 1312.30;
           _assertWithinTolerance(dataPackage.grandTotal, expectedGrandTotal, 0.001, `${testName} - The grand total should be calculated correctly across all items.`);
       });
     });

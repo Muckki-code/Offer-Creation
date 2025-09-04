@@ -58,32 +58,30 @@ function test_getNumericValue() {
     _assertEqual(getNumericValue(null), 0, `${testName} - Should return 0 for null input`);
 }
 
-// In SheetCoreAutomationsTests.gs
+// In 106_SheetCoreAutomationsTests.js
 
 function test_updateCalculationsForRow() {
-    const testName = "Unit Test: updateCalculationsForRow (Pure Function)";
+    const testName = "Unit Test: updateCalculationsForRow (Refactored for Single Capex)";
     const colIndexes = MOCK_DATA_UNIT.approvalWorkflowTestColIndexes;
     const approvalWorkflowConfig = CONFIG.approvalWorkflow;
-    const startColForMockData = 1; // The mock data is a simple array, so its 'data block' starts at col 1.
+    const startColForMockData = 1;
 
     // Test Case 1: Standard calculation using AE Sales Ask Price
     let row1 = MOCK_DATA_UNIT.rows.get('standard');
+    // CORRECTED: Call the pure function and capture its return value
     const result1 = updateCalculationsForRow(row1, colIndexes, approvalWorkflowConfig, startColForMockData);
-    // LRF = (Price * Term) / Capex = (100 * 12) / 1000 = 1.2
+    // CORRECTED: Assert against the returned object's properties
     _assertWithinTolerance(result1.lrfPreview, 1.2, 0.001, `${testName} - Standard LRF`);
-    // Contract Value = Price * Term * Quantity = 100 * 12 * 10 = 12000
     _assertEqual(result1.contractValuePreview, 12000, `${testName} - Standard Contract Value`);
 
     // Test Case 2: Calculation uses Approver Price Proposal when available
     let row2 = MOCK_DATA_UNIT.rows.get('approverPrice');
     const result2 = updateCalculationsForRow(row2, colIndexes, approvalWorkflowConfig, startColForMockData);
-    // LRF = (Approver Price * Term) / Capex = (96 * 12) / 1000 = 1.152
     _assertWithinTolerance(result2.lrfPreview, 1.152, 0.001, `${testName} - LRF uses Approver Price`);
 
     // Test Case 3: Calculation uses Final Approved Price for approved rows
     let row3 = MOCK_DATA_UNIT.rows.get('approved');
     const result3 = updateCalculationsForRow(row3, colIndexes, approvalWorkflowConfig, startColForMockData);
-    // LRF = (Final Price * Term) / Capex = (90 * 12) / 1000 = 1.08
     _assertWithinTolerance(result3.lrfPreview, 1.08, 0.001, `${testName} - LRF uses Final Approved Price`);
 }
 

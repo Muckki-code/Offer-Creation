@@ -78,16 +78,16 @@ function test_documentGeneration_withBundle_Integration() {
                     if (modelCellText.includes('\n')) {
                         bundleRowFound = true;
                         
-                        const expectedModelText = "Complete Bundle B (Pricier),\nComplete Bundle A (Cheaper)";
+                        const expectedModelText = "Apple iPhone 16 Pro Max 1TB\nApple iPhone 16 Pro Max 512GB";
                         _assertEqual(modelCellText, expectedModelText, `${testName} - Model cell should contain correct text with a newline.`);
                         
-                        _assertEqual(row.getCell(1).getText(), "10", `${testName} - Quantity cell should be correct.`);
+                        _assertEqual(row.getCell(1).getText(), "5", `${testName} - Quantity cell should be correct.`);
                         _assertEqual(row.getCell(2).getText(), "24 Monate", `${testName} - Term cell should be correctly formatted.`);
                         
                         // The final cell (4) shows the total price (unit price * quantity).
-                        // From our updated 21-column mock data, the bundle unit price is 25.50 + 30.00 = 55.50.
-                        // Total price = 55.50 * 10 = 555.00
-                        const expectedPrice = formatNumberForLocale(555.00, "german", true);
+                        // From our updated 23-column mock data, the bundle unit price is 64.49 + 73.99 = 138.48.
+                        // Total price = 138.48 * 5 = 692.40
+                        const expectedPrice = formatNumberForLocale(692.40, "german", true);
                         _assertEqual(row.getCell(4).getText(), expectedPrice, `${testName} - Total price cell should be correctly formatted for German locale.`);
 
                         break;

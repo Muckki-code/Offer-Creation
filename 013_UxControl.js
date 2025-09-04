@@ -59,14 +59,33 @@ function applyUxRules(formatIncluded = true) {
       ExecutionTimer.end('applyUxRules_bundleBorders');
     }
     
-    ExecutionTimer.start('applyUxRules_numberFormatting');
+        ExecutionTimer.start('applyUxRules_numberFormatting');
     const formats = CONFIG.numberFormats;
     const allColIndexes = { ...CONFIG.documentDeviceData.columnIndices, ...CONFIG.approvalWorkflow.columnIndices };
-    const currencyCols = ['epCapexRaw', 'tkCapexRaw', 'rentalTargetRaw', 'rentalLimitRaw', 'aeEpCapex', 'aeTkCapex', 'aeSalesAskPrice', 'approverPriceProposal', 'contractValuePreview', 'financeApprovedPrice'];
+
+    // --- THIS IS THE FIX (Part 1): Update the list of all currency columns ---
+    const currencyCols = [
+      'epCapex', 'ep24PriceTarget', 'ep36PriceTarget',  // New BQ Columns
+      'tkCapex', 'tk24PriceTarget', 'tk36PriceTarget',  // New BQ Columns
+      'aeCapex', 'aeSalesAskPrice', 'approverPriceProposal', // AE & Approver Columns
+      'contractValuePreview', 'financeApprovedPrice'     // Automated Columns
+    ];
+
     currencyCols.forEach(key => {
       const colIndex = allColIndexes[key];
-      if (colIndex) { sheet.getRange(startRow, colIndex, numRows).setNumberFormat(formats.currency); }
+      if (colIndex) {
+        // Apply to the entire column in the data range for consistency
+        sheet.getRange(startRow, colIndex, numRows).setNumberFormat(formats.currency);
+      }
     });
+
+    // --- THIS IS THE FIX (Part 2): Add a new rule to format the Index column ---
+    const indexCol = allColIndexes['index'];
+    if (indexCol) {
+      sheet.getRange(startRow, indexCol, numRows).setNumberFormat(formats.number);
+    }
+    // --- END FIX ---
+
     const lrfCol = allColIndexes['lrfPreview'];
     if (lrfCol) {
       const lrfOpenEndedRange = sheet.getRange(startRow, lrfCol, sheet.getMaxRows() - startRow + 1, 1);

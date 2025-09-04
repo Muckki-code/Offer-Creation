@@ -626,11 +626,12 @@ function handleSheetAutomations(e, trueOriginalValuesForTest = null) {
         Log[sourceFile](
           `[${sourceFile} - handleSheetAutomations] Row ${currentRowNumInSheet}: SKU was cleared. Queuing wipe of BQ-derived data.`
         );
-        changesToWrite[combinedIndexes.epCapexRaw] = "";
-        changesToWrite[combinedIndexes.tkCapexRaw] = "";
-        changesToWrite[combinedIndexes.rentalTargetRaw] = "";
-        changesToWrite[combinedIndexes.rentalLimitRaw] = "";
-        // Also clear the model, as it's derived from BQ
+        changesToWrite[combinedIndexes.epCapex] = "";
+        changesToWrite[combinedIndexes.ep24PriceTarget] = "";
+        changesToWrite[combinedIndexes.ep36PriceTarget] = "";
+        changesToWrite[combinedIndexes.tkCapex] = "";
+        changesToWrite[combinedIndexes.tk24PriceTarget] = "";
+        changesToWrite[combinedIndexes.tk36PriceTarget] = "";
         changesToWrite[combinedIndexes.model] = "";
       }
 

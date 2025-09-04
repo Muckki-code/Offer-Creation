@@ -61,39 +61,30 @@ function test_getNumericValue() {
 // In SheetCoreAutomationsTests.gs
 
 function test_updateCalculationsForRow() {
-    const testName = "Unit Test: updateCalculationsForRow (Refactored for Single Capex)";
+    const testName = "Unit Test: updateCalculationsForRow (Pure Function)";
     const colIndexes = MOCK_DATA_UNIT.approvalWorkflowTestColIndexes;
     const approvalWorkflowConfig = CONFIG.approvalWorkflow;
-    const startColForMockData = 1;
-
-    // Create a mock sheet object to satisfy the function signature.
-    const mockSheet = {
-      getRange: () => ({
-        setNumberFormat: () => {} // This is a no-op, which is perfect for a unit test.
-      })
-    };
-    const mockRowNum = 2; // The actual number doesn't matter for this unit test.
+    const startColForMockData = 1; // The mock data is a simple array, so its 'data block' starts at col 1.
 
     // Test Case 1: Standard calculation using AE Sales Ask Price
     let row1 = MOCK_DATA_UNIT.rows.get('standard');
-    // Call with the new, correct signature (isTelekomDeal is now ignored by the function)
-    updateCalculationsForRow(mockSheet, mockRowNum, row1, false, colIndexes, approvalWorkflowConfig, startColForMockData);
+    const result1 = updateCalculationsForRow(row1, colIndexes, approvalWorkflowConfig, startColForMockData);
     // LRF = (Price * Term) / Capex = (100 * 12) / 1000 = 1.2
-    _assertWithinTolerance(row1[colIndexes.lrfPreview - 1], 1.2, 0.001, `${testName} - Standard LRF`);
+    _assertWithinTolerance(result1.lrfPreview, 1.2, 0.001, `${testName} - Standard LRF`);
     // Contract Value = Price * Term * Quantity = 100 * 12 * 10 = 12000
-    _assertEqual(row1[colIndexes.contractValuePreview - 1], 12000, `${testName} - Standard Contract Value`);
+    _assertEqual(result1.contractValuePreview, 12000, `${testName} - Standard Contract Value`);
 
     // Test Case 2: Calculation uses Approver Price Proposal when available
     let row2 = MOCK_DATA_UNIT.rows.get('approverPrice');
-    updateCalculationsForRow(mockSheet, mockRowNum, row2, false, colIndexes, approvalWorkflowConfig, startColForMockData);
+    const result2 = updateCalculationsForRow(row2, colIndexes, approvalWorkflowConfig, startColForMockData);
     // LRF = (Approver Price * Term) / Capex = (96 * 12) / 1000 = 1.152
-    _assertWithinTolerance(row2[colIndexes.lrfPreview - 1], 1.152, 0.001, `${testName} - LRF uses Approver Price`);
+    _assertWithinTolerance(result2.lrfPreview, 1.152, 0.001, `${testName} - LRF uses Approver Price`);
 
     // Test Case 3: Calculation uses Final Approved Price for approved rows
     let row3 = MOCK_DATA_UNIT.rows.get('approved');
-    updateCalculationsForRow(mockSheet, mockRowNum, row3, false, colIndexes, approvalWorkflowConfig, startColForMockData);
+    const result3 = updateCalculationsForRow(row3, colIndexes, approvalWorkflowConfig, startColForMockData);
     // LRF = (Final Price * Term) / Capex = (90 * 12) / 1000 = 1.08
-    _assertWithinTolerance(row3[colIndexes.lrfPreview - 1], 1.08, 0.001, `${testName} - LRF uses Final Approved Price`);
+    _assertWithinTolerance(result3.lrfPreview, 1.08, 0.001, `${testName} - LRF uses Final Approved Price`);
 }
 
 

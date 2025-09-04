@@ -17,7 +17,6 @@
  * OPTIMIZED: This version is now significantly faster. It first attempts to find the bundle's
  * range using row-level metadata, avoiding a slow full-column scan. It only falls back
  * to scanning the sheet if no metadata is present (e.g., for a newly created bundle).
- *
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The active sheet.
  * @param {number} editedRowNum The row number that was just edited.
  * @param {string|number} bundleNumber The bundle ID to validate.
@@ -45,7 +44,7 @@ function validateBundle(sheet, editedRowNum, bundleNumber) {
     };
   }
 
- // In function validateBundle...
+  // In function validateBundle...
 
   let bundleInfoFromMeta = null;
   // --- THIS IS THE FIX ---
@@ -205,88 +204,126 @@ function validateBundle(sheet, editedRowNum, bundleNumber) {
 
 function groupApprovedItems(allDataRows, startCol) {
   const sourceFile = "BundleService_gs";
-  ExecutionTimer.start('groupApprovedItems_total');
-  Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_start' });
+  ExecutionTimer.start("groupApprovedItems_total");
+  Log.TestCoverage_gs({
+    file: sourceFile,
+    coverage: "groupApprovedItems_start",
+  });
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const c = { ...CONFIG.documentDeviceData.columnIndices, ...CONFIG.approvalWorkflow.columnIndices };
-  const approvedStatuses = [CONFIG.approvalWorkflow.statusStrings.approvedOriginal, CONFIG.approvalWorkflow.statusStrings.approvedNew];
-  
-  const approvedRows = allDataRows.filter(row => approvedStatuses.includes(row[c.status - startCol]));
-  
+  const c = {
+    ...CONFIG.documentDeviceData.columnIndices,
+    ...CONFIG.approvalWorkflow.columnIndices,
+  };
+  const approvedStatuses = [
+    CONFIG.approvalWorkflow.statusStrings.approvedOriginal,
+    CONFIG.approvalWorkflow.statusStrings.approvedNew,
+  ];
+
+  const approvedRows = allDataRows.filter((row) =>
+    approvedStatuses.includes(row[c.status - startCol])
+  );
+
   const processedBundleNumbers = new Set();
   const result = [];
   let skippedBundles = []; // <-- Initialize local array to track skipped bundles
 
-  ExecutionTimer.start('groupApprovedItems_mainLoop');
+  ExecutionTimer.start("groupApprovedItems_mainLoop");
   approvedRows.forEach((row, index) => {
-    Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_loop_iteration' });
-    const bundleNumber = String(row[c.bundleNumber - startCol] || '').trim();
-    
+    Log.TestCoverage_gs({
+      file: sourceFile,
+      coverage: "groupApprovedItems_loop_iteration",
+    });
+    const bundleNumber = String(row[c.bundleNumber - startCol] || "").trim();
+
     if (!bundleNumber) {
       result.push({ isBundle: false, row: row });
     } else {
       if (processedBundleNumbers.has(bundleNumber)) {
-        return; 
+        return;
       }
       processedBundleNumbers.add(bundleNumber);
 
-      ExecutionTimer.start('groupApprovedItems_validateBundle');
+      ExecutionTimer.start("groupApprovedItems_validateBundle");
       const validationResult = validateBundle(sheet, 0, bundleNumber);
-      ExecutionTimer.end('groupApprovedItems_validateBundle');
+      ExecutionTimer.end("groupApprovedItems_validateBundle");
 
       if (!validationResult.isValid) {
-        Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_bundleInvalid' });
-        Log[sourceFile](`[groupApprovedItems] Bundle #${bundleNumber} is invalid and will be SKIPPED. Reason: ${validationResult.errorMessage}`);
-        
+        Log.TestCoverage_gs({
+          file: sourceFile,
+          coverage: "groupApprovedItems_bundleInvalid",
+        });
+        Log[sourceFile](
+          `[groupApprovedItems] Bundle #${bundleNumber} is invalid and will be SKIPPED. Reason: ${validationResult.errorMessage}`
+        );
+
         // 👇 ADD THIS LINE TO TRACK THE SKIPPED BUNDLE
         skippedBundles.push(bundleNumber);
-        return; 
+        return;
       }
 
-      const approvedItemsInBundle = approvedRows.filter(r => String(r[c.bundleNumber - startCol] || '').trim() == bundleNumber);
-      
-      Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_bundleComplete' });
-      
+      const approvedItemsInBundle = approvedRows.filter(
+        (r) => String(r[c.bundleNumber - startCol] || "").trim() == bundleNumber
+      );
+
+      Log.TestCoverage_gs({
+        file: sourceFile,
+        coverage: "groupApprovedItems_bundleComplete",
+      });
+
       let totalNetMonthlyPrice = 0;
       let modelsWithPrices = [];
 
-      approvedItemsInBundle.forEach(bundleItem => {
-        const price = getNumericValue(bundleItem[c.financeApprovedPrice - startCol]);
+      approvedItemsInBundle.forEach((bundleItem) => {
+        const price = getNumericValue(
+          bundleItem[c.financeApprovedPrice - startCol]
+        );
         totalNetMonthlyPrice += price;
-        modelsWithPrices.push({ name: bundleItem[c.model - startCol], price: price });
+        modelsWithPrices.push({
+          name: bundleItem[c.model - startCol],
+          price: price,
+        });
       });
-      
+
       modelsWithPrices.sort((a, b) => b.price - a.price);
-      const sortedModelNames = modelsWithPrices.map(m => m.name).join(',\n');
+      const sortedModelNames = modelsWithPrices.map((m) => m.name).join(",\n");
 
       result.push({
         isBundle: true,
         models: sortedModelNames,
         quantity: approvedItemsInBundle[0][c.aeQuantity - startCol],
         term: approvedItemsInBundle[0][c.aeTerm - startCol],
-        totalNetMonthlyPrice: totalNetMonthlyPrice
+        totalNetMonthlyPrice: totalNetMonthlyPrice,
       });
     }
   });
-  ExecutionTimer.end('groupApprovedItems_mainLoop');
+  ExecutionTimer.end("groupApprovedItems_mainLoop");
 
   // 👇 ADD THIS BLOCK TO SHOW THE TOAST AND SAVE TO THE GLOBAL VARIABLE
   if (skippedBundles.length > 0) {
-    Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_showSkippedToast' });
+    Log.TestCoverage_gs({
+      file: sourceFile,
+      coverage: "groupApprovedItems_showSkippedToast",
+    });
     // Use a Set to ensure bundle numbers in the message are unique
     const uniqueSkipped = [...new Set(skippedBundles)];
-    const message = `Note: Bundles #${uniqueSkipped.join(', #')} were excluded from the document due to inconsistent data.`;
+    const message = `Note: Bundles #${uniqueSkipped.join(
+      ", #"
+    )} were excluded from the document due to inconsistent data.`;
     SpreadsheetApp.getActive().toast(message, "Incomplete Document", 10);
     _skippedBundlesForDocGen = uniqueSkipped; // Save to global variable
-    Log[sourceFile](`[groupApprovedItems] The following bundles were skipped: ${uniqueSkipped.join(', ')}`);
+    Log[sourceFile](
+      `[groupApprovedItems] The following bundles were skipped: ${uniqueSkipped.join(
+        ", "
+      )}`
+    );
   } else {
     _skippedBundlesForDocGen = []; // Clear the global variable if no bundles were skipped
   }
   // --- END OF NEW BLOCK ---
 
-  Log.TestCoverage_gs({ file: sourceFile, coverage: 'groupApprovedItems_end' });
-  ExecutionTimer.end('groupApprovedItems_total');
+  Log.TestCoverage_gs({ file: sourceFile, coverage: "groupApprovedItems_end" });
+  ExecutionTimer.end("groupApprovedItems_total");
   return result;
 }
 

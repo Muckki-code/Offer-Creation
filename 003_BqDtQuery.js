@@ -90,11 +90,13 @@ function getDataFromSKU() {
   const statusStrings = wfConfig.statusStrings;
 
   const wasBqDerivedPopulatedBefore = (rowToCheck, currentStartCol) => {
-      return (String(rowToCheck[colIndexes.model - currentStartCol] || "").trim() !== "" ||
-              String(rowToCheck[colIndexes.epCapexRaw - currentStartCol] || "").trim() !== "" ||
-              String(rowToCheck[colIndexes.tkCapexRaw - currentStartCol] || "").trim() !== "" ||
-              String(rowToCheck[colIndexes.rentalTargetRaw - currentStartCol] || "").trim() !== "" ||
-              String(rowToCheck[colIndexes.rentalLimitRaw - currentStartCol] || "").trim() !== "");
+      return (String(rowToCheck[colIndexes.epCapex - currentStartCol] || "").trim() !== "" ||
+              String(rowToCheck[colIndexes.ep24PriceTarget - currentStartCol] || "").trim() !== "" ||
+              String(rowToCheck[colIndexes.ep36PriceTarget - currentStartCol] || "").trim() !== "" ||
+              String(rowToCheck[colIndexes.tkCapex - currentStartCol] || "").trim() !== "" ||
+              String(rowToCheck[colIndexes.tk24PriceTarget - currentStartCol] || "").trim() !== "" ||
+              String(rowToCheck[colIndexes.tk36PriceTarget - currentStartCol] || "").trim() !== "" ||
+              String(rowToCheck[colIndexes.model - currentStartCol] || "").trim() !== "");
   };
 
   let nextIndex = null; // Initialize for index assignment
@@ -115,26 +117,30 @@ function getDataFromSKU() {
       Log.TestCoverage_gs({ file: sourceFile, coverage: 'getDataFromSKU_updateRow' });
       const bqData = queryResults.get(skuInRow);
 
-      if (bqData && bqData.name && String(bqData.name).trim() !== "") {
+      if (bqData && bqData.Model && String(bqData.Model).trim() !== "") {
         Log.TestCoverage_gs({ file: sourceFile, coverage: 'getDataFromSKU_validBqData' });
-        currentRowValues[colIndexes.epCapexRaw - dataBlockStartCol] = isNaN(parseFloat(bqData.epCapex)) ? "" : parseFloat(bqData.epCapex);
-        currentRowValues[colIndexes.tkCapexRaw - dataBlockStartCol] = isNaN(parseFloat(bqData.tkCapex)) ? "" : parseFloat(bqData.tkCapex);
-        currentRowValues[colIndexes.rentalTargetRaw - dataBlockStartCol] = isNaN(parseFloat(bqData.target24)) ? "" : parseFloat(bqData.target24);
-        currentRowValues[colIndexes.rentalLimitRaw - dataBlockStartCol] = isNaN(parseFloat(bqData.limit24)) ? "" : parseFloat(bqData.limit24);
+        currentRowValues[colIndexes.epCapex - dataBlockStartCol] = isNaN(parseFloat(bqData.epCapex)) ? "" : parseFloat(bqData.epCapex);
+        currentRowValues[colIndexes.ep24PriceTarget - dataBlockStartCol] = isNaN(parseFloat(bqData.ep24PriceTarget)) ? "" : parseFloat(bqData.ep24PriceTarget);
+        currentRowValues[colIndexes.ep36PriceTarget - dataBlockStartCol] = isNaN(parseFloat(bqData.ep36PriceTarget)) ? "" : parseFloat(bqData.ep36PriceTarget);
+        currentRowValues[colIndexes.tkCapex - dataBlockStartCol] = isNaN(parseFloat(bqData.tkCapex)) ? "" : parseFloat(bqData.tkCapex);
+        currentRowValues[colIndexes.tk24PriceTarget - dataBlockStartCol] = isNaN(parseFloat(bqData.tk24PriceTarget)) ? "" : parseFloat(bqData.tk24PriceTarget);
+        currentRowValues[colIndexes.tk36PriceTarget - dataBlockStartCol] = isNaN(parseFloat(bqData.tk36PriceTarget)) ? "" : parseFloat(bqData.tk36PriceTarget);
 
-        if (modelInRowBefore === "" || modelInRowBefore !== String(bqData.name).trim()) {
+        if (modelInRowBefore === "" || modelInRowBefore !== String(bqData.Model).trim()) {
             Log.TestCoverage_gs({ file: sourceFile, coverage: 'getDataFromSKU_modelNeedsUpdate' });
-            currentRowValues[colIndexes.model - dataBlockStartCol] = bqData.name;
+            currentRowValues[colIndexes.model - dataBlockStartCol] = bqData.Model;
             needsStatusUpdate = true;
         }
       } else {
           Log.TestCoverage_gs({ file: sourceFile, coverage: 'getDataFromSKU_invalidBqData' });
           if (wasBqDerivedPopulatedBefore(originalRowValuesBefore, dataBlockStartCol)) {
               currentRowValues[colIndexes.model - dataBlockStartCol] = "";
-              currentRowValues[colIndexes.epCapexRaw - dataBlockStartCol] = "";
-              currentRowValues[colIndexes.tkCapexRaw - dataBlockStartCol] = "";
-              currentRowValues[colIndexes.rentalTargetRaw - dataBlockStartCol] = "";
-              currentRowValues[colIndexes.rentalLimitRaw - dataBlockStartCol] = "";
+              currentRowValues[colIndexes.epCapex - dataBlockStartCol] = "";
+              currentRowValues[colIndexes.ep24PriceTarget - dataBlockStartCol] = "";
+              currentRowValues[colIndexes.ep36PriceTarget - dataBlockStartCol] = "";
+              currentRowValues[colIndexes.tkCapex - dataBlockStartCol] = "";
+              currentRowValues[colIndexes.tk24PriceTarget - dataBlockStartCol] = "";
+              currentRowValues[colIndexes.tk36PriceTarget - dataBlockStartCol] = "";
               currentRowValues[colIndexes.lrfPreview - dataBlockStartCol] = "";
               currentRowValues[colIndexes.contractValuePreview - dataBlockStartCol] = "";
               needsStatusUpdate = true;
@@ -155,10 +161,12 @@ function getDataFromSKU() {
     } else if (skuInRow === "" && skuInRowBefore !== "" && wasBqDerivedPopulatedBefore(originalRowValuesBefore, dataBlockStartCol)) {
         Log.TestCoverage_gs({ file: sourceFile, coverage: 'getDataFromSKU_clearRow' });
         currentRowValues[colIndexes.model - dataBlockStartCol] = "";
-        currentRowValues[colIndexes.epCapexRaw - dataBlockStartCol] = "";
-        currentRowValues[colIndexes.tkCapexRaw - dataBlockStartCol] = "";
-        currentRowValues[colIndexes.rentalTargetRaw - dataBlockStartCol] = "";
-        currentRowValues[colIndexes.rentalLimitRaw - dataBlockStartCol] = "";
+        currentRowValues[colIndexes.epCapex - dataBlockStartCol] = "";
+        currentRowValues[colIndexes.ep24PriceTarget - dataBlockStartCol] = "";
+        currentRowValues[colIndexes.ep36PriceTarget - dataBlockStartCol] = "";
+        currentRowValues[colIndexes.tkCapex - dataBlockStartCol] = "";
+        currentRowValues[colIndexes.tk24PriceTarget - dataBlockStartCol] = "";
+        currentRowValues[colIndexes.tk36PriceTarget - dataBlockStartCol] = "";
         currentRowValues[colIndexes.lrfPreview - dataBlockStartCol] = "";
         currentRowValues[colIndexes.contractValuePreview - dataBlockStartCol] = "";
         needsStatusUpdate = true;
@@ -256,10 +264,17 @@ function performBqQuery(uniqueSkusToQuery) {
     throw new Error("No valid numeric SKUs to build BigQuery 'IN' clause.");
   }
 
-  const bqQuery = `SELECT device_configuration_id as SKU, name, ep_sourcing_price, tk_sourcing_price,
-    rent_target_price_EnterpriseB_24_500plus, rent_limit_price_EnterpriseB_24_500plus,
-    rent_target_price_EnterpriseB_36_500plus, rent_limit_price_EnterpriseB_36_500plus
-    FROM \`${tableName}\` WHERE device_configuration_id IN (${skuListForQuery})`;
+  const bqQuery = `SELECT
+      device_configuration_id as SKU,
+      name as Model,
+      ep_sourcing_price as epCapex,
+      rent_target_price_EnterpriseA_24_500plus as ep24PriceTarget,
+      rent_target_price_EnterpriseA_36_500plus as ep36PriceTarget,
+      tk_sourcing_price as tkCapex,
+      rent_target_price_TelekomGermany_24 as tk24PriceTarget,
+      rent_target_price_TelekomGermany_36 as tk36PriceTarget
+    FROM \`${tableName}\`
+    WHERE device_configuration_id IN (${skuListForQuery})`;
   Log[sourceFile](`[${sourceFile} - performBqQuery] Info: Executing BigQuery Query: ${bqQuery}`);
 
   const request = { query: bqQuery, useLegacySql: false };
@@ -295,8 +310,13 @@ function performBqQuery(uniqueSkusToQuery) {
       const fields = row.f;
       const sku = String(fields[0].v).trim();
       bqResultsMap.set(sku, {
-        name: fields[1].v, epCapex: fields[2].v, tkCapex: fields[3].v,
-        target24: fields[4].v, limit24: fields[5].v, target36: fields[6].v, limit36: fields[7].v
+        Model: fields[1].v,
+        epCapex: fields[2].v,
+        ep24PriceTarget: fields[3].v,
+        ep36PriceTarget: fields[4].v,
+        tkCapex: fields[5].v,
+        tk24PriceTarget: fields[6].v,
+        tk36PriceTarget: fields[7].v
       });
     });
   } else {

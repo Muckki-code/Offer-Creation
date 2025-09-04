@@ -26,36 +26,38 @@ var CONFIG = {
     german: "1zBZippAYWw5KOhljo5TIQhheNCdN6_uPWABuQMe7JU0",
   },
 
-  maxDataColumn: 21, // UPDATED: Last column is now U (21)
+  maxDataColumn: 23, // Last column is now W (23)
 
   offerDetailsCells: {
-    cachedHeaderRangeA1: "F1:O4", // <-- ADD THIS LINE
-    customerCompany: "G1",
-    companyAddress: "G3",
-    customerContactName: "G2",
-    offerValidUntil: "I4",
-    specialAgreements: "G4",
-    yourName: "L2",
-    yourPosition: "L3",
-    contractTerm: "I3",
-    documentName: "L4",
-    language: "I1",
-    offerType: "I2",
-    telekomDeal: "L1",
-    approverCell: "O1", // NEW: Cell for the dynamic approver dropdown
+    cachedHeaderRangeA1: "I1:R4",
+    customerCompany: "J1",
+    customerContactName: "J2",
+    companyAddress: "J3",
+    specialAgreements: "J4",
+    language: "L1",
+    offerType: "L2",
+    contractTerm: "L3",
+    offerValidUntil: "L4",
+    telekomDeal: "O1",
+    yourName: "O2",
+    yourPosition: "O3",
+    documentName: "O4",
+    approverCell: "R1",
   },
 
   documentDeviceData: {
     startRow: 7, // Data now starts on row 7
     columns: {
       sku: "A",
-      epCapexRaw: "B",
-      tkCapexRaw: "C",
-      rentalTargetRaw: "D",
-      rentalLimitRaw: "E",
-      index: "F",
-      bundleNumber: "G",
-      model: "H",
+      epCapex: "B",
+      ep24PriceTarget: "C",
+      ep36PriceTarget: "D",
+      tkCapex: "E",
+      tk24PriceTarget: "F",
+      tk36PriceTarget: "G",
+      index: "H",
+      bundleNumber: "I",
+      model: "J",
     },
     columnIndices: {},
   },
@@ -64,7 +66,7 @@ var CONFIG = {
     scriptStartRow: 7, // BQ script also starts on row 7
     skuColumnLetter: "A",
     outputStartColumnLetter: "B",
-    numOutputColumns: 4,
+    numOutputColumns: 7,
     projectId: "208090676765",
     tableName: "everphone-bi-testing.superset.dt_prices_overview",
   },
@@ -78,20 +80,19 @@ var CONFIG = {
       "geoffrey.ochs@everphone.de"
     ],
     columns: {
-      // UPDATED: Merged aeEpCapex and aeTkCapex into aeCapex and shifted all subsequent columns left.
-      aeCapex: "I",
-      aeSalesAskPrice: "J",
-      aeQuantity: "K",
-      aeTerm: "L",
-      approverAction: "M",
-      approverComments: "N",
-      approverPriceProposal: "O",
-      lrfPreview: "P",
-      contractValuePreview: "Q",
-      status: "R",
-      financeApprovedPrice: "S",
-      approvedBy: "T",
-      approvalDate: "U",
+      aeCapex: "K",
+      aeSalesAskPrice: "L",
+      aeQuantity: "M",
+      aeTerm: "N",
+      approverAction: "O",
+      approverComments: "P",
+      approverPriceProposal: "Q",
+      lrfPreview: "R",
+      contractValuePreview: "S",
+      status: "T",
+      financeApprovedPrice: "U",
+      approvedBy: "V",
+      approvalDate: "W",
     },
     columnIndices: {},
     statusStrings: {
@@ -107,7 +108,7 @@ var CONFIG = {
       aeSalesAskPrice: "Sales Rental Price",
       quantity: "Quantity",
       aeTerm: "Term",
-      aeCapex: "AE Capex", // UPDATED from separate EP/TK Capex
+      aeCapex: "AE Capex",
     },
     approverActionColors: {
       "Choose Action": { font: "#6c757d" },
@@ -118,20 +119,12 @@ var CONFIG = {
   },
 
   protectedColumns: [
-    // Device Trader data (from BQ)
-    "B",
-    "C",
-    "D",
-    "E",
+    // BQ-derived data
+    "B", "C", "D", "E", "F", "G",
     // Row Index
-    "F",
-    // UPDATED: Shifted all protected calculation/approval columns left.
-    "P",
-    "Q",
-    "R",
-    "S",
-    "T",
-    "U",
+    "H",
+    // Calculation and approval columns
+    "R", "S", "T", "U", "V", "W"
   ],
 
   numberFormats: {
